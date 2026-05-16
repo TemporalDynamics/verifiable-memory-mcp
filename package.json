@@ -1,0 +1,25 @@
+{
+  "name": "verifiable-memory-mcp",
+  "version": "0.1.0",
+  "description": "Local-first, append-only, tamper-evident memory for AI agents via MCP",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "verifiable-memory-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "npx tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "better-sqlite3": "^11.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT"
+}
