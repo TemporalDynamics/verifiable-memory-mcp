@@ -90,6 +90,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             items: { type: "string" },
             description: "Specific entry IDs to export (optional, exports all if omitted)",
           },
+          limit: { type: "number", description: "Max entries when exporting all (default 10000)" },
         },
       },
     },
@@ -122,8 +123,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return timeline({ tag, limit });
       }
       case "export": {
-        const { ids } = args as { ids?: string[] };
-        return exportEntries({ ids });
+        const { ids, limit } = args as { ids?: string[]; limit?: number };
+        return exportEntries({ ids, limit });
       }
       default:
         return {

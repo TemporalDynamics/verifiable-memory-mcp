@@ -1,10 +1,10 @@
 import { getEntriesByIds, getChain } from "../db.js";
 import { ToolResponse, ExportBundle } from "../types.js";
 
-export function exportEntries(args: { ids?: string[] }): ToolResponse {
+export function exportEntries(args: { ids?: string[]; limit?: number }): ToolResponse {
   const entries = args.ids && args.ids.length > 0
     ? getEntriesByIds(args.ids)
-    : getChain(1000);
+    : getChain(args.limit ?? 10_000);
 
   const bundle: ExportBundle = {
     format: "verifiable-memory-bundle",

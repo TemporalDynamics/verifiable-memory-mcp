@@ -1,12 +1,14 @@
-import { getChain } from "../db.js";
+import { getChain, entryCount } from "../db.js";
 import { hashEntry, hashContent, buildEntryCanonical } from "../hashing.js";
 import { ToolResponse, MemoryEntry } from "../types.js";
 
 export function chainData(args: { limit?: number }): ToolResponse {
   const limit = args.limit ?? 100;
   const entries = getChain(limit);
+  const total = entryCount();
 
   const validated = validateChain(entries);
+  const isPartial = entries.length < total;
 
   return {
     content: [
@@ -16,6 +18,8 @@ export function chainData(args: { limit?: number }): ToolResponse {
           {
             status: "ok",
             chainLength: entries.length,
+            totalEntries: total,
+            isPartialCheck: isPartial,
             valid: validated.valid,
             totalChecked: validated.checked,
             failedAt: validated.failedAt,

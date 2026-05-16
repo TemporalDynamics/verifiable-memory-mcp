@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import os from "node:os";
+import { mkdirSync } from "node:fs";
 import { MemoryEntry } from "./types.js";
 
 const DB_DIR = path.join(os.homedir(), ".verifiable-memory-mcp");
@@ -10,6 +11,7 @@ let db: Database.Database;
 
 export function getDb(): Database.Database {
   if (!db) {
+    mkdirSync(DB_DIR, { recursive: true });
     db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");
     migrate(db);
@@ -35,22 +37,34 @@ function migrate(database: Database.Database): void {
   `);
 }
 
-export function insertEntry(entry: MemoryEntry): void {
+export function insertEntryAtomic(buildEntry: (prevHash: string | null) => MemoryEntry): MemoryEntry {
   const database = getDb();
-  const stmt = database.prepare(`
+  const insert = database.prepare(`
     INSERT INTO entries (id, created_at, content, tags, content_hash, prev_hash, entry_hash, created_epoch)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(
-    entry.id,
-    entry.createdAt,
-    entry.content,
-    JSON.stringify(entry.tags),
-    entry.contentHash,
-    entry.prevHash,
-    entry.entryHash,
-    new Date(entry.createdAt).getTime()
+  const getLatest = database.prepare(
+    "SELECT * FROM entries ORDER BY created_epoch DESC LIMIT 1"
   );
+
+  const run = database.transaction(() => {
+    const latestRow = getLatest.get() as Record<string, unknown> | undefined;
+    const prevHash = latestRow ? (latestRow.entry_hash as string) : null;
+    const entry = buildEntry(prevHash);
+    insert.run(
+      entry.id,
+      entry.createdAt,
+      entry.content,
+      JSON.stringify(entry.tags),
+      entry.contentHash,
+      entry.prevHash,
+      entry.entryHash,
+      new Date(entry.createdAt).getTime()
+    );
+    return entry;
+  });
+
+  return run();
 }
 
 export function getEntry(id: string): MemoryEntry | undefined {
@@ -62,9 +76,10 @@ export function getEntry(id: string): MemoryEntry | undefined {
 
 export function searchEntries(query: string, limit = 20): MemoryEntry[] {
   const database = getDb();
+  const escaped = query.replace(/[%_\\]/g, "\\$&");
   const rows = database.prepare(
-    "SELECT * FROM entries WHERE content LIKE ? ORDER BY created_epoch DESC LIMIT ?"
-  ).all(`%${query}%`, limit) as Record<string, unknown>[];
+    "SELECT * FROM entries WHERE content LIKE ? ESCAPE '\\' ORDER BY created_epoch DESC LIMIT ?"
+  ).all(`%${escaped}%`, limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
 
