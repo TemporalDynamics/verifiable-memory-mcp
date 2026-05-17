@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// Example seed script for verifiable-memory-mcp.
+// Copy this to seed.mjs and customize your entries.
+// seed.mjs is gitignored so you can keep your own data private.
+
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -7,11 +11,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverPath = resolve(__dirname, "dist/index.js");
 
 const entries = [
-  { content: "[PROJECT: MCP] verifiable-memory-mcp is a public project for local-first tamper-evident memory for AI agents.", tags: ["project", "mcp"] },
-  { content: "[RULE: PUBLIC] Do not mention EPI, WIT, LTC, PPA, patent, context_hash, answer_hash, input_hash, privacySealState or forensic accountability in the public README.", tags: ["rule", "ip"] },
-  { content: "[PROJECT: ECOSIGN] EcoSign is public and can support reputation, but should not expose private EPI architecture.", tags: ["project", "ecosign"] },
-  { content: "[STRATEGY] Public repos should feed reputation, not leak internal architecture.", tags: ["strategy"] },
-  { content: "[POSITIONING] The public message is: AI agents do not just need more memory — they need memory they can verify.", tags: ["strategy", "positioning"] },
+  { content: "My first memory — hello world!", tags: ["example"] },
+  { content: "Important note: this is a tamper-evident memory store.", tags: ["example", "note"] },
+  { content: "[PROJECT: demo] Add your own project memories here.", tags: ["example", "project"] },
 ];
 
 console.log(`Seeding ${entries.length} entries...\n`);

@@ -133,7 +133,7 @@ Semantic retrieval may come later. v0.1 focuses on integrity, portability, and l
 - **No encryption**: This does not encrypt your memory. The SQLite database is stored in plaintext in `~/.verifiable-memory-mcp/`.
 - **No access control**: Anyone with access to your machine can read the database. Do not store passwords, keys, tokens, credentials, or secrets here.
 - **No cloud**: Data never leaves your machine. No telemetry, no login, no network calls from the MCP server.
-- **Filesystem trust**: If an attacker has write access to the database, they may be able to rewrite entries and recompute hashes. This tool detects accidental edits, partial tampering, and broken chains; it is not a hardened forensic security system.
+- **Filesystem trust**: If an attacker has write access to the database, they may be able to rewrite entries and recompute hashes. This tool detects accidental edits, partial tampering, and broken chains; it is not a hardened security or audit system.
 
 This is a tool for detecting whether local agent memory changed, not for preventing compromise of a machine.
 
