@@ -15,7 +15,7 @@ This is not a vector database or a semantic memory palace. It is a **verifiable 
 | Tool | Description |
 |---|---|
 | `remember` | Store a memory entry (append-only, hash-chained) |
-| `recall` | Search memories by text content |
+| `recall` | Search memories by text content (simple LIKE, not semantic) |
 | `verify` | Recompute hashes and confirm an entry hasn't been altered |
 | `chain` | View the full hash chain with integrity validation (detects breaks, reordering, tampering) |
 | `timeline` | List memories chronologically, filterable by tag |
@@ -36,7 +36,9 @@ entryHash  = sha256({ contentHash, prevHash, createdAt })
 
 If someone edits the SQLite file directly, `contentHash` won't match.
 If someone adds or removes entries, the `prevHash` chain breaks.
-Both are detected by `verify`.
+
+Content edits are detected by `verify`.
+Chain breaks, removals, and reordering are detected by `chain`.
 
 ## Install
 
@@ -99,7 +101,7 @@ No cloud. No telemetry. No login. Your memory never leaves your machine.
 |---|---|---|---|
 | Storage | Vectors + chunks | SQLite + verbatim | SQLite + hash chain |
 | Search | Semantic | Semantic + text | Text (LIKE) |
-| Verification | No | No | **Yes (hash chain)** |
+| Verification | No | Usually no chain verification | **Yes (hash chain)** |
 | Append-only | No | Yes | **Yes + enforced by hash** |
 | MCP support | Some | Yes | **Yes** |
 | Cloud | Usually | Optional | **No (local-first)** |
@@ -108,13 +110,13 @@ This project does not compete on recall quality or embedding performance. It com
 
 ## Security / Threat model
 
-- **Tamper detection**: `verify()` and `chain()` detect if content was altered or the hash chain was broken. Works after the fact — it tells you whether something changed, not who changed it.
-- **No encryption**: This does not encrypt your memory. The SQLite database is stored in plaintext in `~/.verifiable-memory-mcp/`. If you need encryption, encrypt the database file or your filesystem.
-- **No access control**: This is a local-first tool. Anyone with access to your machine can read the database. Do not store passwords, keys, or secrets here.
+- **Tamper detection**: `verify()` detects altered entry content. `chain()` detects broken links, removals, reordering, or partial tampering.
+- **No encryption**: This does not encrypt your memory. The SQLite database is stored in plaintext in `~/.verifiable-memory-mcp/`.
+- **No access control**: Anyone with access to your machine can read the database. Do not store passwords, keys, tokens, credentials, or secrets here.
 - **No cloud**: Data never leaves your machine. No telemetry, no login, no network calls from the MCP server.
-- **Filesystem trust**: The tool trusts the local filesystem. If an attacker has write access to `~/.verifiable-memory-mcp/memory.db`, they can modify entries and the hashes — though doing so without breaking the chain is computationally infeasible for an attacker who cannot recalculate all subsequent hashes.
+- **Filesystem trust**: If an attacker has write access to the database, they may be able to rewrite entries and recompute hashes. This tool detects accidental edits, partial tampering, and broken chains; it is not a hardened forensic security system.
 
-This is a tool for **detecting accidental or unauthorized modification**, not a forensic security system.
+This is a tool for detecting whether local agent memory changed, not for preventing compromise of a machine.
 
 ## License
 
