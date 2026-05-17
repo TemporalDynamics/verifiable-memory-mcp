@@ -15,7 +15,7 @@ This is not a vector database or a semantic memory palace. It is a **verifiable 
 | Tool | Description |
 |---|---|
 | `remember` | Store a memory entry (append-only, hash-chained) |
-| `recall` | Search memories by text content (simple LIKE, not semantic) |
+| `recall` | Search memories by text content (simple LIKE + token fallback, not semantic) |
 | `verify` | Recompute hashes and confirm an entry hasn't been altered |
 | `chain` | View the full hash chain with integrity validation (detects breaks, reordering, tampering) |
 | `timeline` | List memories chronologically, filterable by tag |
@@ -39,6 +39,23 @@ If someone adds or removes entries, the `prevHash` chain breaks.
 
 Content edits are detected by `verify`.
 Chain breaks, removals, and reordering are detected by `chain`.
+
+## Search behavior
+
+`recall` currently uses text-based search, not embeddings or semantic retrieval.
+
+It works best when your query uses the same language and keywords used in the stored memory.
+
+If you work across languages, store bilingual entries or add bilingual tags:
+
+```text
+Remember: [RULE: PUBLIC] Do not mention internal protocol details publicly.
+Evitar mencionar públicamente detalles internos del protocolo.
+
+Tags: public, público, avoid, evitar, mention, mencionar
+```
+
+For broad inspection, use `timeline` with `includeContent: true`.
 
 ## Install
 
@@ -107,6 +124,8 @@ No cloud. No telemetry. No login. Your memory never leaves your machine.
 | Cloud | Usually | Optional | **No (local-first)** |
 
 This project does not compete on recall quality or embedding performance. It competes on **integrity**: knowing that what the agent remembers is what was actually stored.
+
+Semantic retrieval may come later. v0.1 focuses on integrity, portability, and local verification.
 
 ## Security / Threat model
 
