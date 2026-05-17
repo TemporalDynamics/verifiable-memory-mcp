@@ -1,0 +1,9 @@
+src/
+seed.mjs
+tsconfig.json
+node_modules/
+*.db
+.env
+.env.*
+*.log
+.DS_Store

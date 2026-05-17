@@ -1,6 +1,6 @@
 {
   "name": "verifiable-memory-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first, append-only, tamper-evident memory for AI agents via MCP",
   "type": "module",
   "main": "dist/index.js",

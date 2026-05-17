@@ -106,6 +106,63 @@ For testing, pipe JSON-RPC messages:
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"remember","arguments":{"content":"test decision","tags":["test"]}}}' | npx verifiable-memory-mcp
 ```
 
+## Testing with MCP Inspector
+
+```bash
+npx -y @modelcontextprotocol/inspector npx -y verifiable-memory-mcp
+```
+
+This opens a web UI where you can call each tool interactively.
+
+### Tool call examples
+
+**remember:**
+```json
+{
+  "content": "The deployment targets Europe for Q3",
+  "tags": ["strategy", "deployment"]
+}
+```
+
+**recall:**
+```json
+{
+  "query": "deployment"
+}
+```
+
+**timeline** (with full content):
+```json
+{
+  "includeContent": true
+}
+```
+
+**timeline** (filtered by tag):
+```json
+{
+  "tag": "strategy",
+  "includeContent": true
+}
+```
+
+**verify:**
+```json
+{
+  "id": "mem_a1b2c3d4"
+}
+```
+
+**chain:**
+```json
+{}
+```
+
+**export:**
+```json
+{}
+```
+
 ## Storage
 
 All data lives in `~/.verifiable-memory-mcp/memory.db` (SQLite, WAL mode).

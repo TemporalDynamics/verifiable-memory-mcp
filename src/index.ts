@@ -13,7 +13,7 @@ import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
 
 const server = new Server(
-  { name: "verifiable-memory-mcp", version: "0.1.0" },
+  { name: "verifiable-memory-mcp", version: "0.1.1" },
   { capabilities: { tools: {} } }
 );
 
@@ -34,6 +34,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["content"],
       },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
     },
     {
       name: "recall",
@@ -46,6 +52,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["query"],
       },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     {
       name: "verify",
@@ -57,6 +69,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["id"],
       },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     {
       name: "chain",
@@ -66,6 +84,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           limit: { type: "number", description: "Max entries (default 100)" },
         },
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
       },
     },
     {
@@ -78,6 +102,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           limit: { type: "number", description: "Max results (default 50)" },
           includeContent: { type: "boolean", description: "Return full content (default false, truncates at 120 chars)" },
         },
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
       },
     },
     {
@@ -93,6 +123,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           limit: { type: "number", description: "Max entries when exporting all (default 10000)" },
         },
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
       },
     },
   ],
