@@ -83,6 +83,25 @@ export function searchEntries(query: string, limit = 20): MemoryEntry[] {
   return rows.map(rowToEntry);
 }
 
+export function searchEntriesFlexible(query: string, limit = 20): MemoryEntry[] {
+  const database = getDb();
+  const words = query
+    .toLowerCase()
+    .split(/[\s,;:.!?¿¡()]+/)
+    .map(w => w.replace(/[%_\\]/g, "\\$&"))
+    .filter(w => w.length > 0);
+
+  if (words.length === 0) return [];
+
+  const conditions = words.flatMap(w => ["content LIKE ? ESCAPE '\\'", "tags LIKE ? ESCAPE '\\'"]);
+  const params: string[] = words.flatMap(w => [`%${w}%`, `%${w}%`]);
+
+  const rows = database.prepare(
+    `SELECT DISTINCT * FROM entries WHERE ${conditions.join(" OR ")} ORDER BY created_epoch DESC LIMIT ?`
+  ).all(...params, limit) as Record<string, unknown>[];
+  return rows.map(rowToEntry);
+}
+
 export function getLatestEntry(): MemoryEntry | undefined {
   const database = getDb();
   const row = database.prepare(

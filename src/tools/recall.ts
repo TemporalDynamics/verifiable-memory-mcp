@@ -1,9 +1,14 @@
-import { searchEntries, entryCount } from "../db.js";
+import { searchEntries, searchEntriesFlexible, entryCount } from "../db.js";
 import { ToolResponse } from "../types.js";
 
 export function recall(args: { query: string; limit?: number }): ToolResponse {
   const limit = args.limit ?? 20;
-  const results = searchEntries(args.query, limit);
+
+  let results = searchEntries(args.query, limit);
+
+  if (results.length === 0) {
+    results = searchEntriesFlexible(args.query, limit);
+  }
 
   return {
     content: [

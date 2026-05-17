@@ -1,7 +1,7 @@
 import { getTimeline } from "../db.js";
 import { ToolResponse } from "../types.js";
 
-export function timeline(args: { tag?: string; limit?: number }): ToolResponse {
+export function timeline(args: { tag?: string; limit?: number; includeContent?: boolean }): ToolResponse {
   const limit = args.limit ?? 50;
   const entries = getTimeline(args.tag, limit);
 
@@ -14,10 +14,11 @@ export function timeline(args: { tag?: string; limit?: number }): ToolResponse {
             status: "ok",
             tag: args.tag ?? null,
             count: entries.length,
+            includeContent: args.includeContent ?? false,
             entries: entries.map((e) => ({
               id: e.id,
               createdAt: e.createdAt,
-              content: e.content.length > 120 ? e.content.slice(0, 120) + "..." : e.content,
+              content: args.includeContent ? e.content : (e.content.length > 120 ? e.content.slice(0, 120) + "..." : e.content),
               tags: e.tags,
               entryHash: e.entryHash,
             })),

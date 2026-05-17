@@ -76,6 +76,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           tag: { type: "string", description: "Filter by tag" },
           limit: { type: "number", description: "Max results (default 50)" },
+          includeContent: { type: "boolean", description: "Return full content (default false, truncates at 120 chars)" },
         },
       },
     },
@@ -119,8 +120,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return chainData({ limit });
       }
       case "timeline": {
-        const { tag, limit } = args as { tag?: string; limit?: number };
-        return timeline({ tag, limit });
+        const { tag, limit, includeContent } = args as { tag?: string; limit?: number; includeContent?: boolean };
+        return timeline({ tag, limit, includeContent });
       }
       case "export": {
         const { ids, limit } = args as { ids?: string[]; limit?: number };
