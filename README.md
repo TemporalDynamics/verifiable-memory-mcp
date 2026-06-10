@@ -2,60 +2,115 @@
 
 **Local-first, append-only, tamper-evident memory for AI agents.**
 
-An MCP server that stores agent memory as a verifiable hash chain. Every entry is immutable, timestamped, cryptographically hashed, and linked to the previous one. Altering any entry breaks the chain — detectably.
+`verifiable-memory-mcp` is an MCP server for storing agent memory as a verifiable hash chain.
 
-## Why
+Every entry is immutable, timestamped, cryptographically linked to the previous one, and exportable as portable evidence.
 
-AI agents accumulate memory over time. Files get edited. Context gets stale. Records get overwritten.
+This repository is a **public, focused implementation** of one idea: agent memory should not only be useful, it should also be inspectable and tamper-evident.
 
-This is not a vector database or a semantic memory palace. It is a **verifiable substrate** for agent memory: a place to store decisions, facts, and context so you can later verify nothing was silently changed.
+It is not presented as a full agent operating system, a full memory architecture, or a complete governance layer. It is a narrow, practical building block that demonstrates a specific capability clearly.
 
-## Tools
+## Why this exists
+
+AI agents accumulate memory over time:
+
+- decisions,
+- operator notes,
+- reminders,
+- constraints,
+- context,
+- and historical records of what mattered.
+
+In most systems, that memory is optimized for retrieval, not integrity.
+
+Files get edited. Context drifts. Records are overwritten. Explanations come after the fact.
+
+This project takes a different angle:
+
+**before asking whether an agent remembers well, ask whether its memory can be checked.**
+
+## What it does
+
+This server gives an MCP-compatible client a local memory store with:
+
+- append-only writes,
+- per-entry hashing,
+- chain integrity verification,
+- chronological inspection,
+- portable export.
+
+The result is simple:
+
+you can later verify whether what the agent “remembers” is still what was originally stored.
+
+## What it is not
+
+This is **not**:
+
+- a vector database,
+- a semantic memory system,
+- a long-context reasoning engine,
+- an enterprise audit platform,
+- or a complete agent governance framework.
+
+It does not try to solve everything.
+
+It focuses on one narrow property:
+
+**memory integrity.**
+
+## Core idea
+
+Each memory entry creates hashes that bind content, timestamp, and position in a chain.
+
+```text
+contentHash = sha256(content)
+entryHash   = sha256({ contentHash, prevHash, createdAt })
+```
+
+- `contentHash` checks the stored content itself
+- `prevHash` links the entry to the previous entry
+- `entryHash` checks the integrity of the whole record in context
+
+If someone edits an entry directly, the content hash no longer matches.
+If someone inserts, removes, or reorders entries, the chain breaks.
+
+## Available tools
 
 | Tool | Description |
 |---|---|
-| `remember` | Store a memory entry (append-only, hash-chained) |
-| `recall` | Search memories by text content (simple LIKE + token fallback, not semantic) |
-| `verify` | Recompute hashes and confirm an entry hasn't been altered |
-| `chain` | View the full hash chain with integrity validation (detects breaks, reordering, tampering) |
-| `timeline` | List memories chronologically, filterable by tag |
+| `remember` | Store a new memory entry (append-only, hash-chained) |
+| `recall` | Search memories by text content |
+| `verify` | Recompute hashes and confirm an entry has not been altered |
+| `chain` | Validate the full chain and detect breaks or reordering |
+| `timeline` | List memories chronologically, optionally filtered by tag |
 | `export` | Export a portable, verifiable JSON bundle |
 
-## How it works
+## Why MCP
 
-Every entry creates three hashes:
+This project is designed for the Model Context Protocol so that memory integrity can be exposed as a tool, not buried as an implementation detail.
 
-```
-contentHash = sha256(content)
-entryHash  = sha256({ contentHash, prevHash, createdAt })
-```
+That matters because it lets an agent:
 
-- `contentHash` — integrity of the memory content
-- `prevHash` — links to the previous entry (forms the chain)
-- `entryHash` — integrity of the whole entry + its position in the chain
+- write memory,
+- inspect memory,
+- verify memory,
+- and export memory evidence
 
-If someone edits the SQLite file directly, `contentHash` won't match.
-If someone adds or removes entries, the `prevHash` chain breaks.
+through the same tool interface it uses for the rest of its work.
 
-Content edits are detected by `verify`.
-Chain breaks, removals, and reordering are detected by `chain`.
-
-## Search behavior
-
-`recall` currently uses text-based search, not embeddings or semantic retrieval.
-
-It works best when your query uses the same language and keywords used in the stored memory.
-
-If you work across languages, store bilingual entries or add bilingual tags:
+## Example
 
 ```text
-Remember: [RULE: PUBLIC] Do not mention internal protocol details publicly.
-Evitar mencionar públicamente detalles internos del protocolo.
+Remember: The deployment strategy prioritizes Europe over Asia for Q3.
+✓ remembered (mem_a1b2c3d4)
 
-Tags: public, público, avoid, evitar, mention, mencionar
+Recall deployment strategy
+Found 1 entry
+
+Verify mem_a1b2c3d4
+✓ Entry is intact and chain-verified
 ```
-
-For broad inspection, use `timeline` with `includeContent: true`.
 
 ## Install
 
@@ -65,9 +120,7 @@ npm install -g verifiable-memory-mcp
 
 Requires Node.js 18+.
 
-## Usage with MCP clients
-
-Add to your MCP client config:
+## MCP client config
 
 ```json
 {
@@ -80,43 +133,28 @@ Add to your MCP client config:
 }
 ```
 
-### Claude CLI / OpenCode
-
-```
-> Remember: The deployment strategy prioritizes Europe over Asia for Q3.
-  ✓ remembered (mem_a1b2c3d4)
-
-> Recall deployment strategy
-  Found 1 entry
-
-> Verify mem_a1b2c3d4
-  ✓ Entry is intact and chain-verified
-```
-
-### Via command line directly
+## Direct usage
 
 ```bash
-# Run the MCP server in stdio mode
 npx verifiable-memory-mcp
 ```
 
-For testing, pipe JSON-RPC messages:
+For testing with JSON-RPC:
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"remember","arguments":{"content":"test decision","tags":["test"]}}}' | npx verifiable-memory-mcp
 ```
 
-## Testing with MCP Inspector
+## MCP Inspector
 
 ```bash
 npx -y @modelcontextprotocol/inspector npx -y verifiable-memory-mcp
 ```
 
-This opens a web UI where you can call each tool interactively.
+## Tool examples
 
-### Tool call examples
+**remember**
 
-**remember:**
 ```json
 {
   "content": "The deployment targets Europe for Q3",
@@ -124,75 +162,97 @@ This opens a web UI where you can call each tool interactively.
 }
 ```
 
-**recall:**
+**recall**
+
 ```json
 {
   "query": "deployment"
 }
 ```
 
-**timeline** (with full content):
+**timeline**
+
 ```json
 {
   "includeContent": true
 }
 ```
 
-**timeline** (filtered by tag):
-```json
-{
-  "tag": "strategy",
-  "includeContent": true
-}
-```
+**verify**
 
-**verify:**
 ```json
 {
   "id": "mem_a1b2c3d4"
 }
 ```
 
-**chain:**
+**chain**
+
 ```json
 {}
 ```
 
-**export:**
+**export**
+
 ```json
 {}
 ```
 
 ## Storage
 
-All data lives in `~/.verifiable-memory-mcp/memory.db` (SQLite, WAL mode).
+Data is stored locally in:
 
-No cloud. No telemetry. No login. Your memory never leaves your machine.
+```text
+~/.verifiable-memory-mcp/memory.db
+```
+
+SQLite, WAL mode. No cloud. No telemetry. No login.
+
+Override the data directory with:
+
+```bash
+VMCP_DATA_DIR=/tmp/vmcp-demo npx -y verifiable-memory-mcp
+```
+
+## Search behavior
+
+`recall` currently uses text-based retrieval, not embeddings.
+
+That is a deliberate choice in this version.
+
+This project is not competing on semantic recall quality. It is competing on whether memory can later be checked and exported in a verifiable way.
+
+If you work across languages, bilingual entries or bilingual tags improve recall quality.
 
 ## Comparison
 
-| Feature | Vector DBs | MemPalace | Verifiable Memory MCP |
+| Feature | Vector DBs | Typical memory layers | verifiable-memory-mcp |
 |---|---|---|---|
-| Storage | Vectors + chunks | SQLite + verbatim | SQLite + hash chain |
-| Search | Semantic | Semantic + text | Text (LIKE) |
-| Verification | No | Usually no chain verification | **Yes (hash chain)** |
-| Append-only | No | Yes | **Yes + enforced by hash** |
-| MCP support | Some | Yes | **Yes** |
-| Cloud | Usually | Optional | **No (local-first)** |
+| Primary goal | Retrieval | Convenience | Integrity |
+| Search | Semantic | Mixed | Text |
+| Append-only | Usually no | Sometimes | **Yes** |
+| Chain verification | No | Rarely | **Yes** |
+| Local-first | Sometimes | Sometimes | **Yes** |
+| MCP-native | Varies | Varies | **Yes** |
 
-This project does not compete on recall quality or embedding performance. It competes on **integrity**: knowing that what the agent remembers is what was actually stored.
+## Security / threat model
 
-Semantic retrieval may come later. v0.1 focuses on integrity, portability, and local verification.
+- **Tamper detection**: `verify()` detects altered entry content. `chain()` detects broken links, removals, and reordering.
+- **No encryption**: the SQLite database is stored in plaintext.
+- **No access control**: anyone with filesystem access can read the database.
+- **No cloud**: the server does not send data to external services.
+- **Not a hardened audit appliance**: if an attacker fully controls the machine, this tool does not guarantee safety.
 
-## Security / Threat model
+This project helps detect memory changes.
+It does not guarantee system compromise resistance.
 
-- **Tamper detection**: `verify()` detects altered entry content. `chain()` detects broken links, removals, reordering, or partial tampering.
-- **No encryption**: This does not encrypt your memory. The SQLite database is stored in plaintext in `~/.verifiable-memory-mcp/`.
-- **No access control**: Anyone with access to your machine can read the database. Do not store passwords, keys, tokens, credentials, or secrets here.
-- **No cloud**: Data never leaves your machine. No telemetry, no login, no network calls from the MCP server.
-- **Filesystem trust**: If an attacker has write access to the database, they may be able to rewrite entries and recompute hashes. This tool detects accidental edits, partial tampering, and broken chains; it is not a hardened security or audit system.
+## Positioning
 
-This is a tool for detecting whether local agent memory changed, not for preventing compromise of a machine.
+The best way to understand this repository is:
+
+**a public, concrete demonstration that agent memory can be append-only, inspectable, and tamper-evident through MCP.**
+
+It is intentionally narrower than the broader architectural questions it points toward.
 
 ## License
 

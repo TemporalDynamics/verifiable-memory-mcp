@@ -4,7 +4,7 @@ import os from "node:os";
 import { mkdirSync } from "node:fs";
 import { MemoryEntry } from "./types.js";
 
-const DB_DIR = path.join(os.homedir(), ".verifiable-memory-mcp");
+const DB_DIR = process.env.VMCP_DATA_DIR ?? path.join(os.homedir(), ".verifiable-memory-mcp");
 const DB_PATH = path.join(DB_DIR, "memory.db");
 
 let db: Database.Database;

@@ -13,7 +13,7 @@ import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
 
 const server = new Server(
-  { name: "verifiable-memory-mcp", version: "0.1.1" },
+  { name: "verifiable-memory-mcp", version: "0.1.2" },
   { capabilities: { tools: {} } }
 );
 
