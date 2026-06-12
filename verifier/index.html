@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Verificador — verifiable-memory-bundle</title>
+<style>
+  :root {
+    --bg: #f5f4ec;
+    --card: #ffffff;
+    --ink: #1d1d1b;
+    --muted: #6b6b66;
+    --line: #e2e0d5;
+    --green: #136f63;
+    --green-soft: #e3f0ee;
+    --red: #b3261e;
+    --red-soft: #f9e7e6;
+    --idle: #9a988e;
+    --focus: #136f63;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14140f;
+      --card: #1e1e18;
+      --ink: #f0efe6;
+      --muted: #a3a299;
+      --line: #33332a;
+      --green: #4cc2a9;
+      --green-soft: #11332e;
+      --red: #ff7a70;
+      --red-soft: #3a1715;
+      --idle: #6e6d64;
+      --focus: #4cc2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+  }
+  main {
+    width: 100%;
+    max-width: 28rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin: auto 0;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  h1 { font-size: 1.05rem; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: .8rem; margin: .15rem 0 0; }
+  #langToggle {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 8px; padding: .3rem .55rem; font-size: .75rem; cursor: pointer;
+    min-height: 32px;
+  }
+  .light {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 1.5rem 0 1.25rem;
+  }
+  .circle {
+    width: 9rem; height: 9rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 4px dashed var(--idle);
+    color: var(--idle);
+    font-size: 3.4rem;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    user-select: none;
+  }
+  @media (prefers-reduced-motion: reduce) { .circle { transition: none; } }
+  .circle.green { background: var(--green); border: 4px solid var(--green); color: #fff; }
+  .circle.red   { background: var(--red);   border: 4px solid var(--red);   color: #fff; }
+  .circle.busy  { border-style: solid; }
+  .verdict { font-size: 1.35rem; font-weight: 700; letter-spacing: .14em; margin: .9rem 0 0; min-height: 1.6rem; }
+  .verdict.green { color: var(--green); }
+  .verdict.red   { color: var(--red); }
+  #statusline { text-align: center; color: var(--muted); font-size: .9rem; margin: .35rem 0 1rem; min-height: 1.3em; }
+  .controls { display: flex; flex-direction: column; gap: .75rem; }
+  .drop {
+    border: 2px dashed var(--line); border-radius: 12px;
+    padding: 1rem; text-align: center; color: var(--muted); font-size: .9rem;
+  }
+  .drop.over { border-color: var(--focus); color: var(--ink); }
+  .pick {
+    display: inline-block; margin-top: .55rem;
+    background: var(--ink); color: var(--bg);
+    border-radius: 10px; padding: .65rem 1.1rem;
+    font-weight: 600; cursor: pointer; min-height: 44px; line-height: 1.8;
+  }
+  .pick:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+  input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .anchor label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .3rem; }
+  .anchor input {
+    width: 100%; min-height: 44px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: transparent; color: var(--ink);
+    padding: .5rem .7rem; font: .85rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .anchor input:focus { outline: 3px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+  details {
+    margin-top: 1rem; border: 1px solid var(--line); border-radius: 10px;
+    padding: .55rem .8rem; font-size: .85rem;
+  }
+  summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: .6rem 0 0; }
+  dt { color: var(--muted); white-space: nowrap; }
+  dd { margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; }
+  dd.plain { font-family: inherit; font-size: .85rem; }
+  footer { margin-top: 1.1rem; color: var(--muted); font-size: .72rem; line-height: 1.45; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1 id="t_title">Verificador de integridad</h1>
+      <p class="sub">verifiable-memory-bundle · v0.1</p>
+    </div>
+    <button id="langToggle" type="button" aria-label="Switch language">EN</button>
+  </header>
+
+  <div class="light">
+    <div class="circle" id="circle" aria-hidden="true">·</div>
+    <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+    <p id="statusline"></p>
+  </div>
+
+  <div class="controls">
+    <div class="drop" id="drop">
+      <span id="t_drop">Arrastra y suelta el bundle aquí</span><br>
+      <label class="pick"><span id="t_pick">Elegir archivo</span>
+        <input type="file" id="file" accept=".json,application/json">
+      </label>
+    </div>
+    <div class="anchor">
+      <label for="anchor" id="t_anchor">Hash de ancla (sha256 del archivo, opcional)</label>
+      <input type="text" id="anchor" inputmode="latin" autocomplete="off" spellcheck="false"
+             placeholder="3f9c…(64 hex)">
+    </div>
+  </div>
+
+  <details id="details" hidden>
+    <summary id="t_details">Detalles técnicos</summary>
+    <dl id="detailList"></dl>
+  </details>
+
+  <footer id="t_limit">
+    Tamper-evident: este verificador detecta alteraciones del registro; no valida que el
+    contenido sea correcto. Toda la verificación ocurre localmente en tu dispositivo —
+    no se envía nada a ningún servidor.
+  </footer>
+</main>
+
+<!-- ============================================================
+     CORE — lógica pura de verificación, sin DOM.
+     Réplica exacta de src/hashing.ts y validateChain (src/tools/chain.ts)
+     del paquete verifiable-memory-mcp (MIT). Testeable en Node >= 18
+     (mismo API WebCrypto). No editar sin actualizar acceptance.mjs.
+     ============================================================ -->
+<script id="vmcp-core">
+"use strict";
+(function () {
+  const HEX = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
+
+  function bytesToHex(buf) {
+    const b = new Uint8Array(buf);
+    let out = "";
+    for (let i = 0; i < b.length; i++) out += HEX[b[i]];
+    return out;
+  }
+
+  async function sha256HexOfBytes(bytes) {
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return bytesToHex(digest);
+  }
+
+  async function sha256HexOfText(text) {
+    return sha256HexOfBytes(new TextEncoder().encode(text));
+  }
+
+  // Réplica exacta de buildEntryCanonical (src/hashing.ts):
+  // JSON.stringify({ contentHash, prevHash, createdAt }) — el orden de claves importa.
+  function buildEntryCanonical(contentHash, prevHash, createdAt) {
+    return JSON.stringify({ contentHash, prevHash, createdAt });
+  }
+
+  function normalizeAnchor(raw) {
+    if (raw == null) return { provided: false, value: null, valid: true };
+    let v = String(raw).trim().toLowerCase();
+    if (v === "") return { provided: false, value: null, valid: true };
+    if (v.startsWith("sha256:")) v = v.slice(7);
+    const valid = /^[0-9a-f]{64}$/.test(v);
+    return { provided: true, value: valid ? v : null, valid };
+  }
+
+  function entryStructureOk(e) {
+    return e !== null && typeof e === "object" &&
+      typeof e.content === "string" &&
+      typeof e.contentHash === "string" &&
+      typeof e.entryHash === "string" &&
+      typeof e.createdAt === "string" &&
+      (e.prevHash === null || typeof e.prevHash === "string");
+  }
+
+  // bytes: Uint8Array | ArrayBuffer con los bytes EXACTOS del archivo.
+  // anchorRaw: string | null — sha256 hex esperado del archivo completo.
+  // Devuelve: { verdict: "green"|"red"|"error", anchor, bundleHash, entryCount,
+  //             exportedAt, version, checkedEntries, failure }
+  // failure.check ∈ parse | format | structure | content | entry | link | anchor | anchor_invalid
+  async function verifyBundle(bytes, anchorRaw) {
+    const result = {
+      verdict: "error",
+      anchor: "not_provided", // not_provided | match | mismatch | invalid
+      bundleHash: null,
+      entryCount: null,
+      exportedAt: null,
+      version: null,
+      checkedEntries: 0,
+      chainConsistent: null,
+      failure: null
+    };
+
+    result.bundleHash = await sha256HexOfBytes(bytes);
+
+    const anchor = normalizeAnchor(anchorRaw);
+    if (anchor.provided && !anchor.valid) {
+      result.anchor = "invalid";
+      result.failure = { check: "anchor_invalid", entryId: null, index: null };
+      return result; // error: ancla mal escrita ≠ veredicto de integridad
+    }
+    if (anchor.provided) {
+      result.anchor = anchor.value === result.bundleHash ? "match" : "mismatch";
+    }
+
+    let bundle = null;
+    let parseFailure = null;
+    try {
+      bundle = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    } catch {
+      parseFailure = { check: "parse", entryId: null, index: null };
+    }
+    if (!parseFailure &&
+        (bundle === null || typeof bundle !== "object" ||
+         bundle.format !== "verifiable-memory-bundle" || !Array.isArray(bundle.entries))) {
+      parseFailure = { check: "format", entryId: null, index: null };
+      bundle = null;
+    }
+
+    if (!bundle) {
+      if (result.anchor === "mismatch") {
+        // Con ancla válida que no coincide, el veredicto es ALTERADO aunque no se pueda parsear.
+        result.verdict = "red";
+        result.failure = { check: "anchor", entryId: null, index: null };
+      } else {
+        result.verdict = "error"; // sin ancla no podemos emitir veredicto sobre un archivo ilegible
+        result.failure = parseFailure;
+      }
+      return result;
+    }
+
+    result.entryCount = bundle.entries.length;
+    result.exportedAt = typeof bundle.exportedAt === "string" ? bundle.exportedAt : null;
+    result.version = typeof bundle.version === "string" ? bundle.version : null;
+
+    // Réplica exacta de validateChain (src/tools/chain.ts), en el orden del array:
+    //  (a) recomputar contentHash,
+    //  (b) recomputar entryHash desde el canonical,
+    //  (c) para i>0: prevHash debe enlazar con el entryHash anterior.
+    // Nota: igual que en chain.ts, NO se exige prevHash === null en la primera
+    // entrada del subset — un export parcial contiguo sigue siendo verificable.
+    let chainFailure = null;
+    for (let i = 0; i < bundle.entries.length; i++) {
+      const entry = bundle.entries[i];
+      const id = entry && typeof entry.id === "string" ? entry.id : "(index " + i + ")";
+
+      if (!entryStructureOk(entry)) {
+        chainFailure = { check: "structure", entryId: id, index: i };
+        result.checkedEntries = i + 1;
+        break;
+      }
+
+      const recomputedContentHash = await sha256HexOfText(entry.content);
+      if (recomputedContentHash !== entry.contentHash) {
+        chainFailure = { check: "content", entryId: id, index: i };
+        result.checkedEntries = i + 1;
+        break;
+      }
+
+      const canonical = buildEntryCanonical(entry.contentHash, entry.prevHash, entry.createdAt);
+      const recomputedEntryHash = await sha256HexOfText(canonical);
+      if (recomputedEntryHash !== entry.entryHash) {
+        chainFailure = { check: "entry", entryId: id, index: i };
+        result.checkedEntries = i + 1;
+        break;
+      }
+
+      if (i > 0) {
+        const prev = bundle.entries[i - 1];
+        if (entry.prevHash !== prev.entryHash) {
+          chainFailure = { check: "link", entryId: id, index: i };
+          result.checkedEntries = i + 1;
+          break;
+        }
+      }
+      result.checkedEntries = i + 1;
+    }
+
+    result.chainConsistent = chainFailure === null;
+
+    if (chainFailure) {
+      result.verdict = "red";
+      result.failure = chainFailure;
+      return result;
+    }
+    if (result.anchor === "mismatch") {
+      result.verdict = "red";
+      result.failure = { check: "anchor", entryId: null, index: null };
+      return result;
+    }
+    result.verdict = "green";
+    return result;
+  }
+
+  globalThis.VMCPVerifier = {
+    verifyBundle,
+    sha256HexOfBytes,
+    sha256HexOfText,
+    buildEntryCanonical,
+    normalizeAnchor
+  };
+})();
+</script>
+
+<script>
+"use strict";
+(function () {
+  const I18N = {
+    es: {
+      title: "Verificador de integridad",
+      drop: "Arrastra y suelta el bundle aquí",
+      pick: "Elegir archivo",
+      anchor: "Hash de ancla (sha256 del archivo, opcional)",
+      details: "Detalles técnicos",
+      idle: "Carga un bundle exportado para verificarlo.",
+      busy: "Verificando…",
+      green: "ÍNTEGRO",
+      red: "ALTERADO",
+      chainOk: "La cadena de hashes es consistente.",
+      anchorOk: "Coincide con el ancla externa.",
+      anchorNone: "Sin ancla externa: verificación interna solamente.",
+      anchorMismatch: "El archivo no coincide con el ancla externa.",
+      anchorInvalid: "El ancla no es un sha256 válido (64 hex). Revísala.",
+      parse: "El archivo no es JSON válido — no se pudo verificar.",
+      format: "El archivo no es un verifiable-memory-bundle — no se pudo verificar.",
+      structure: "Estructura de entrada inválida",
+      content: "contentHash no coincide — contenido modificado",
+      entry: "entryHash no coincide — metadatos modificados",
+      link: "prevHash no enlaza con la entrada anterior — orden alterado o entrada faltante",
+      anchorFail: "sha256 del archivo ≠ ancla — el archivo no es el publicado",
+      chainAlsoOk: "cadena interna consistente, pero no es el archivo anclado",
+      insecure: "Este verificador necesita un contexto seguro (https:// o localhost).",
+      fetchErr: "No se pudo cargar la URL del bundle.",
+      dEntries: "Entradas", dChecked: "Verificadas", dExported: "Exportado",
+      dBundleHash: "sha256 del archivo", dFailCheck: "Check fallido",
+      dFailEntry: "Entry", dAnchor: "Ancla", dLimit: "Alcance",
+      dLimitText: "tamper-evident: detecta alteración; no valida veracidad del contenido",
+      aMatch: "coincide", aMismatch: "no coincide", aNone: "no provista", aInvalid: "inválida",
+      limit: "Tamper-evident: este verificador detecta alteraciones del registro; no valida que el contenido sea correcto. Toda la verificación ocurre localmente en tu dispositivo — no se envía nada a ningún servidor.",
+      toggle: "EN", langName: "es"
+    },
+    en: {
+      title: "Integrity verifier",
+      drop: "Drag and drop the bundle here",
+      pick: "Choose file",
+      anchor: "Anchor hash (sha256 of the file, optional)",
+      details: "Technical details",
+      idle: "Load an exported bundle to verify it.",
+      busy: "Verifying…",
+      green: "INTACT",
+      red: "ALTERED",
+      chainOk: "The hash chain is consistent.",
+      anchorOk: "Matches the external anchor.",
+      anchorNone: "No external anchor: internal verification only.",
+      anchorMismatch: "The file does not match the external anchor.",
+      anchorInvalid: "The anchor is not a valid sha256 (64 hex). Check it.",
+      parse: "The file is not valid JSON — nothing could be verified.",
+      format: "The file is not a verifiable-memory-bundle — nothing could be verified.",
+      structure: "Invalid entry structure",
+      content: "contentHash mismatch — content was modified",
+      entry: "entryHash mismatch — metadata was modified",
+      link: "prevHash does not link to the previous entry — reordered or missing entry",
+      anchorFail: "file sha256 ≠ anchor — this is not the published file",
+      chainAlsoOk: "internal chain is consistent, but this is not the anchored file",
+      insecure: "This verifier requires a secure context (https:// or localhost).",
+      fetchErr: "Could not load the bundle URL.",
+      dEntries: "Entries", dChecked: "Checked", dExported: "Exported",
+      dBundleHash: "file sha256", dFailCheck: "Failed check",
+      dFailEntry: "Entry", dAnchor: "Anchor", dLimit: "Scope",
+      dLimitText: "tamper-evident: detects alteration; does not validate content truthfulness",
+      aMatch: "match", aMismatch: "mismatch", aNone: "not provided", aInvalid: "invalid",
+      limit: "Tamper-evident: this verifier detects alterations of the record; it does not validate that the content is correct. All verification happens locally on your device — nothing is sent to any server.",
+      toggle: "ES", langName: "en"
+    }
+  };
+
+  let lang = (navigator.language || "es").toLowerCase().startsWith("es") ? "es" : "en";
+  let lastBytes = null;
+  let lastResult = null;
+
+  const $ = (id) => document.getElementById(id);
+  const circle = $("circle"), verdict = $("verdict"), statusline = $("statusline");
+  const details = $("details"), detailList = $("detailList");
+  const anchorInput = $("anchor"), fileInput = $("file"), drop = $("drop");
+
+  function t(key) { return I18N[lang][key]; }
+
+  function applyLang() {
+    document.documentElement.lang = t("langName");
+    $("t_title").textContent = t("title");
+    $("t_drop").textContent = t("drop");
+    $("t_pick").textContent = t("pick");
+    $("t_anchor").textContent = t("anchor");
+    $("t_details").textContent = t("details");
+    $("t_limit").textContent = t("limit");
+    $("langToggle").textContent = t("toggle");
+    if (lastResult) render(lastResult); else renderIdle();
+  }
+
+  function renderIdle(msg) {
+    circle.className = "circle";
+    circle.textContent = "·";
+    verdict.className = "verdict";
+    verdict.textContent = "";
+    statusline.textContent = msg || t("idle");
+    details.hidden = true;
+  }
+
+  function renderBusy() {
+    circle.className = "circle busy";
+    circle.textContent = "…";
+    verdict.className = "verdict";
+    verdict.textContent = "";
+    statusline.textContent = t("busy");
+  }
+
+  function failureText(f) {
+    if (!f) return "";
+    const map = { parse: "parse", format: "format", structure: "structure",
+                  content: "content", entry: "entry", link: "link",
+                  anchor: "anchorFail", anchor_invalid: "anchorInvalid" };
+    return t(map[f.check] || f.check);
+  }
+
+  function render(r) {
+    lastResult = r;
+    detailList.innerHTML = "";
+
+    if (r.verdict === "green") {
+      circle.className = "circle green"; circle.textContent = "✓";
+      verdict.className = "verdict green"; verdict.textContent = t("green");
+      statusline.textContent = t("chainOk") + " " +
+        (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
+    } else if (r.verdict === "red") {
+      circle.className = "circle red"; circle.textContent = "✕";
+      verdict.className = "verdict red"; verdict.textContent = t("red");
+      statusline.textContent = r.failure && r.failure.check === "anchor"
+        ? t("anchorMismatch") + (r.chainConsistent ? " (" + t("chainAlsoOk") + ")" : "")
+        : failureText(r.failure);
+    } else {
+      renderIdle(failureText(r.failure));
+      if (r.bundleHash) addDetail("dBundleHash", r.bundleHash);
+      details.hidden = detailList.childElementCount === 0;
+      return;
+    }
+
+    if (r.entryCount !== null) addDetail("dEntries", String(r.entryCount), true);
+    addDetail("dChecked", String(r.checkedEntries), true);
+    if (r.exportedAt) addDetail("dExported", r.exportedAt);
+    addDetail("dBundleHash", r.bundleHash);
+    addDetail("dAnchor",
+      r.anchor === "match" ? t("aMatch") :
+      r.anchor === "mismatch" ? t("aMismatch") :
+      r.anchor === "invalid" ? t("aInvalid") : t("aNone"), true);
+    if (r.failure && r.failure.check) {
+      addDetail("dFailCheck", failureText(r.failure), true);
+      if (r.failure.entryId) addDetail("dFailEntry", r.failure.entryId);
+    }
+    addDetail("dLimit", t("dLimitText"), true);
+    details.hidden = false;
+  }
+
+  function addDetail(labelKey, value, plain) {
+    const dt = document.createElement("dt");
+    dt.textContent = t(labelKey);
+    const dd = document.createElement("dd");
+    if (plain) dd.className = "plain";
+    dd.textContent = value;
+    detailList.appendChild(dt);
+    detailList.appendChild(dd);
+  }
+
+  async function run() {
+    if (!lastBytes) return;
+    renderBusy();
+    try {
+      const r = await globalThis.VMCPVerifier.verifyBundle(lastBytes, anchorInput.value);
+      render(r);
+    } catch (err) {
+      renderIdle(String(err && err.message ? err.message : err));
+    }
+  }
+
+  async function loadFile(file) {
+    if (!file) return;
+    lastBytes = new Uint8Array(await file.arrayBuffer());
+    run();
+  }
+
+  fileInput.addEventListener("change", () => loadFile(fileInput.files[0]));
+
+  ["dragover", "dragenter"].forEach((ev) =>
+    document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((ev) =>
+    document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  document.body.addEventListener("drop", (e) => {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      loadFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  let anchorTimer = null;
+  anchorInput.addEventListener("input", () => {
+    clearTimeout(anchorTimer);
+    anchorTimer = setTimeout(() => { if (lastBytes) run(); }, 250);
+  });
+
+  $("langToggle").addEventListener("click", () => {
+    lang = lang === "es" ? "en" : "es";
+    applyLang();
+  });
+
+  // Arranque
+  applyLang();
+
+  if (!globalThis.crypto || !globalThis.crypto.subtle) {
+    renderIdle(t("insecure"));
+    return;
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.get("anchor")) anchorInput.value = params.get("anchor");
+  const bundleUrl = params.get("bundle");
+  if (bundleUrl) {
+    renderBusy();
+    fetch(bundleUrl)
+      .then((res) => { if (!res.ok) throw new Error(t("fetchErr")); return res.arrayBuffer(); })
+      .then((buf) => { lastBytes = new Uint8Array(buf); run(); })
+      .catch(() => renderIdle(t("fetchErr")));
+  }
+})();
+</script>
+</body>
+</html>

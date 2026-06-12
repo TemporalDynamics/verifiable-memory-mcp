@@ -1,0 +1,43 @@
+{
+  "format": "verifiable-memory-bundle",
+  "version": "0.1",
+  "exportedAt": "2026-06-12T07:04:33.369Z",
+  "entries": [
+    {
+      "id": "mem_15d167fd",
+      "createdAt": "2026-06-12T07:04:33.358Z",
+      "content": "Decisión simulada del agente: preparar instrucción de pago de $10.000 — pendiente de aprobación humana.",
+      "tags": [
+        "demo",
+        "simulación"
+      ],
+      "contentHash": "2385d94f8902329837b64fcffe17549c3eb05b5d3c1f5e594c43959b898ed831",
+      "prevHash": null,
+      "entryHash": "be3f8edb664063064ab01c0e4b1ca0276f78e59957d7e8002965ef244720767a"
+    },
+    {
+      "id": "mem_29a800d8",
+      "createdAt": "2026-06-12T07:04:33.366Z",
+      "content": "Contexto usado: límite operativo \"tier-2\", contraparte ACME S.A. (ñ, é, 中文, emoji ✓).",
+      "tags": [
+        "demo",
+        "contexto"
+      ],
+      "contentHash": "70752ff825627807e8e0d7db88c7c8b7010d59612d76fa3032dab332268e297c",
+      "prevHash": "be3f8edb664063064ab01c0e4b1ca0276f78e59957d7e8002965ef244720767a",
+      "entryHash": "61f84733739612ecc261b570fdc20946f60cf99139d4cbe2a549c3ad7d6bb550"
+    },
+    {
+      "id": "mem_b91c9c02",
+      "createdAt": "2026-06-12T07:04:33.368Z",
+      "content": "Aprobación humana registrada. La instrucción pasa a ejecución.",
+      "tags": [
+        "demo",
+        "aprobación"
+      ],
+      "contentHash": "b7ceb02f4867f7f5da9a90be10a185be4018e778de661d3df16a268b1c1aadd0",
+      "prevHash": "61f84733739612ecc261b570fdc20946f60cf99139d4cbe2a549c3ad7d6bb550",
+      "entryHash": "ade4e6bd50f336af022345d00935cf781a37b5a9c6e506e35212e293c24a0630"
+    }
+  ]
+}
