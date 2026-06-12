@@ -115,9 +115,14 @@ try {
   }
   const anchor = await sha256Hex(bundleBytes);
 
-  // Guardar bundle de ejemplo + su ancla (para demo / artículo).
-  writeFileSync(join(HERE, "sample-bundle.json"), bundleText);
-  writeFileSync(join(HERE, "sample-bundle.sha256"), anchor + "  sample-bundle.json\n");
+  // Hermético por defecto: la corrida no muta el árbol del repo.
+  // Los fixtures commiteados (sample-bundle.json/.sha256) solo se regeneran
+  // de forma explícita con --update-fixtures.
+  if (process.argv.includes("--update-fixtures")) {
+    writeFileSync(join(HERE, "sample-bundle.json"), bundleText);
+    writeFileSync(join(HERE, "sample-bundle.sha256"), anchor + "  sample-bundle.json\n");
+    console.log("fixtures actualizados: verifier/sample-bundle.json + .sha256");
+  }
 
   // ---------- 2. Extraer y cargar el core EXACTO del HTML ----------
   const html = readFileSync(join(HERE, "index.html"), "utf-8");
@@ -187,6 +192,18 @@ try {
   r = await verifyBundle(enc.encode(JSON.stringify({ hello: "world" })), null);
   check("S8 JSON ajeno sin ancla → error/format",
     r.verdict === "error" && r.failure?.check === "format");
+
+  // S10 — los fixtures COMMITEADOS siguen siendo válidos (no quedaron stale)
+  {
+    const fixturePath = join(HERE, "sample-bundle.json");
+    const shaPath = join(HERE, "sample-bundle.sha256");
+    const fixtureBytes = new Uint8Array(readFileSync(fixturePath));
+    const fixtureAnchor = readFileSync(shaPath, "utf-8").split(/\s+/)[0];
+    r = await verifyBundle(fixtureBytes, fixtureAnchor);
+    check("S10 fixture commiteado verifica verde/match contra su .sha256",
+      r.verdict === "green" && r.anchor === "match",
+      JSON.stringify(r.failure) + " anchor=" + r.anchor);
+  }
 
   // S9 — bytes truncados + ancla correcta del original → ROJO (el ancla manda)
   r = await verifyBundle(bundleBytes.slice(0, bundleBytes.length - 10), anchor);

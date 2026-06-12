@@ -15,6 +15,19 @@
 #   VMCP_DATA_DIR=/path ./verifier/anchor.sh # uses a specific DB (e.g. the demo DB)
 set -euo pipefail
 
+# Preflight: fallar al inicio con mensaje claro, no a mitad del flujo.
+for dep in node jq; do
+  command -v "$dep" > /dev/null 2>&1 || { echo "ERROR: falta '$dep' en PATH." >&2; exit 1; }
+done
+if command -v sha256sum > /dev/null 2>&1; then
+  sha256_file() { sha256sum "$1"; }
+elif command -v shasum > /dev/null 2>&1; then # macOS
+  sha256_file() { shasum -a 256 "$1"; }
+else
+  echo "ERROR: falta 'sha256sum' (Linux) o 'shasum' (macOS) en PATH." >&2
+  exit 1
+fi
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(dirname "$HERE")"
 SERVER="$ROOT/dist/index.js"
@@ -41,7 +54,7 @@ jq -e '.format == "verifiable-memory-bundle"' "$BUNDLE" > /dev/null \
 ENTRIES=$(jq '.entries | length' "$BUNDLE")
 
 # --- 2. Anchor hash = sha256 of the exact file bytes ---
-( cd "$OUTDIR" && sha256sum bundle.json > bundle.sha256 )
+( cd "$OUTDIR" && sha256_file bundle.json > bundle.sha256 )
 ANCHOR=$(cut -d' ' -f1 "$OUTDIR/bundle.sha256")
 
 # --- 3. Optional: OpenTimestamps receipt (Bitcoin-attested, third-party time) ---
