@@ -44,7 +44,7 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const getLatest = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
   );
 
   const run = database.transaction(() => {
@@ -78,7 +78,7 @@ export function searchEntries(query: string, limit = 20): MemoryEntry[] {
   const database = getDb();
   const escaped = query.replace(/[%_\\]/g, "\\$&");
   const rows = database.prepare(
-    "SELECT * FROM entries WHERE content LIKE ? ESCAPE '\\' ORDER BY created_epoch DESC LIMIT ?"
+    "SELECT * FROM entries WHERE content LIKE ? ESCAPE '\\' ORDER BY created_epoch DESC, rowid DESC LIMIT ?"
   ).all(`%${escaped}%`, limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
@@ -97,7 +97,7 @@ export function searchEntriesFlexible(query: string, limit = 20): MemoryEntry[] 
   const params: string[] = words.flatMap(w => [`%${w}%`, `%${w}%`]);
 
   const rows = database.prepare(
-    `SELECT DISTINCT * FROM entries WHERE ${conditions.join(" OR ")} ORDER BY created_epoch DESC LIMIT ?`
+    `SELECT DISTINCT * FROM entries WHERE ${conditions.join(" OR ")} ORDER BY created_epoch DESC, rowid DESC LIMIT ?`
   ).all(...params, limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
@@ -105,7 +105,7 @@ export function searchEntriesFlexible(query: string, limit = 20): MemoryEntry[] 
 export function getLatestEntry(): MemoryEntry | undefined {
   const database = getDb();
   const row = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
   ).get() as Record<string, unknown> | undefined;
   if (!row) return undefined;
   return rowToEntry(row);
@@ -114,7 +114,7 @@ export function getLatestEntry(): MemoryEntry | undefined {
 export function getChain(limit = 100): MemoryEntry[] {
   const database = getDb();
   const rows = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch ASC LIMIT ?"
+    "SELECT * FROM entries ORDER BY created_epoch ASC, rowid ASC LIMIT ?"
   ).all(limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
@@ -123,12 +123,13 @@ export function getTimeline(tag?: string, limit = 50): MemoryEntry[] {
   const database = getDb();
   let rows: Record<string, unknown>[];
   if (tag) {
+    const escapedTag = tag.replace(/[%_\\]/g, "\\$&");
     rows = database.prepare(
-      "SELECT * FROM entries WHERE tags LIKE ? ORDER BY created_epoch DESC LIMIT ?"
-    ).all(`%"${tag}"%`, limit) as Record<string, unknown>[];
+      "SELECT * FROM entries WHERE tags LIKE ? ESCAPE '\\' ORDER BY created_epoch DESC, rowid DESC LIMIT ?"
+    ).all(`%"${escapedTag}"%`, limit) as Record<string, unknown>[];
   } else {
     rows = database.prepare(
-      "SELECT * FROM entries ORDER BY created_epoch DESC LIMIT ?"
+      "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT ?"
     ).all(limit) as Record<string, unknown>[];
   }
   return rows.map(rowToEntry);
@@ -138,7 +139,7 @@ export function getEntriesByIds(ids: string[]): MemoryEntry[] {
   const database = getDb();
   const placeholders = ids.map(() => "?").join(",");
   const rows = database.prepare(
-    `SELECT * FROM entries WHERE id IN (${placeholders}) ORDER BY created_epoch ASC`
+    `SELECT * FROM entries WHERE id IN (${placeholders}) ORDER BY created_epoch ASC, rowid ASC`
   ).all(...ids) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
