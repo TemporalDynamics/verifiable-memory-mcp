@@ -12,64 +12,17 @@
  * Uso:  node verifier/acceptance.mjs
  * Salida: PASS/FAIL por escenario; exit code != 0 si algo falla.
  */
-import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { callTools, textContent } from "../demo/mcp-client.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, "..");
 
 // ---------- 1. Server MCP real contra DB temporal ----------
 const dataDir = mkdtempSync(join(tmpdir(), "vmcp-acceptance-"));
-const server = spawn("node", [join(ROOT, "dist", "index.js")], {
-  env: { ...process.env, VMCP_DATA_DIR: dataDir },
-  stdio: ["pipe", "pipe", "pipe"],
-});
-let stderrBuf = "";
-server.stderr.on("data", (d) => (stderrBuf += d.toString()));
-
-const pending = new Map();
-let nextId = 1;
-let lineBuf = "";
-server.stdout.on("data", (chunk) => {
-  lineBuf += chunk.toString();
-  let nl;
-  while ((nl = lineBuf.indexOf("\n")) >= 0) {
-    const line = lineBuf.slice(0, nl).trim();
-    lineBuf = lineBuf.slice(nl + 1);
-    if (!line) continue;
-    try {
-      const msg = JSON.parse(line);
-      if (msg.id !== undefined && pending.has(msg.id)) {
-        pending.get(msg.id)(msg);
-        pending.delete(msg.id);
-      }
-    } catch { /* línea no-JSON: ignorar */ }
-  }
-});
-
-function rpc(method, params) {
-  const id = nextId++;
-  const p = new Promise((resolve, reject) => {
-    pending.set(id, resolve);
-    setTimeout(() => {
-      if (pending.has(id)) { pending.delete(id); reject(new Error(`timeout esperando ${method}`)); }
-    }, 15_000);
-  });
-  server.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
-  return p;
-}
-function notify(method, params) {
-  server.stdin.write(JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n");
-}
-async function callTool(name, args) {
-  const res = await rpc("tools/call", { name, arguments: args });
-  if (res.error) throw new Error(`${name} → ${JSON.stringify(res.error)}`);
-  return res.result.content[0].text;
-}
 
 // ---------- helpers ----------
 const enc = new TextEncoder();
@@ -86,28 +39,35 @@ function check(label, cond, detail) {
 
 // ---------- main ----------
 try {
-  await rpc("initialize", {
-    protocolVersion: "2024-11-05",
-    capabilities: {},
-    clientInfo: { name: "vmcp-acceptance", version: "0.0.0" },
-  });
-  notify("notifications/initialized");
+  const session = await callTools(
+    [
+      {
+        name: "remember",
+        arguments: {
+          content: "Simulated agent policy: send_daily_operational_summary allowed.",
+          tags: ["demo", "policy"],
+        },
+      },
+      {
+        name: "remember",
+        arguments: {
+          content: 'Simulated request: approve_wire_transfer by delegate (risk=high, amount=4200 USD).',
+          tags: ["demo", "request"],
+        },
+      },
+      {
+        name: "remember",
+        arguments: {
+          content: "Simulated owner note: action requires human review before execution.",
+          tags: ["demo", "owner-note"],
+        },
+      },
+      { name: "export", arguments: {} },
+    ],
+    { dataDir, clientName: "vmcp-acceptance" }
+  );
 
-  // Contenido estilo demo (simulación, sin datos reales) + unicode + caracteres especiales.
-  await callTool("remember", {
-    content: "Decisión simulada del agente: preparar instrucción de pago de $10.000 — pendiente de aprobación humana.",
-    tags: ["demo", "simulación"],
-  });
-  await callTool("remember", {
-    content: 'Contexto usado: límite operativo "tier-2", contraparte ACME S.A. (ñ, é, 中文, emoji ✓).',
-    tags: ["demo", "contexto"],
-  });
-  await callTool("remember", {
-    content: "Aprobación humana registrada. La instrucción pasa a ejecución.",
-    tags: ["demo", "aprobación"],
-  });
-
-  const bundleText = await callTool("export", {});
+  const bundleText = textContent(session.results[3]);
   const bundleBytes = enc.encode(bundleText);
   const bundleObj = JSON.parse(bundleText);
   if (bundleObj.format !== "verifiable-memory-bundle" || bundleObj.entries.length !== 3) {
@@ -214,9 +174,7 @@ try {
   process.exitCode = failCount === 0 ? 0 : 1;
 } catch (err) {
   console.error("\nERROR de ejecución:", err.message);
-  if (stderrBuf) console.error("stderr del server:\n" + stderrBuf.slice(0, 2000));
   process.exitCode = 1;
 } finally {
-  server.kill();
   rmSync(dataDir, { recursive: true, force: true });
 }

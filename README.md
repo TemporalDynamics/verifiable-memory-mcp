@@ -142,7 +142,11 @@ npx verifiable-memory-mcp
 For testing with JSON-RPC:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"remember","arguments":{"content":"test decision","tags":["test"]}}}' | npx verifiable-memory-mcp
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"0.1"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"remember","arguments":{"content":"test decision","tags":["test"]}}}' \
+  | npx verifiable-memory-mcp
 ```
 
 ## MCP Inspector
@@ -213,6 +217,17 @@ Override the data directory with:
 ```bash
 VMCP_DATA_DIR=/tmp/vmcp-demo npx -y verifiable-memory-mcp
 ```
+
+## Demo flow
+
+The end-to-end demo is sandbox-only by default:
+
+```bash
+npm run demo:e2e
+```
+
+This uses `/tmp/vmcp-agent-demo` and never exports `~/.verifiable-memory-mcp`
+unless you explicitly opt into real data elsewhere.
 
 ## Search behavior
 

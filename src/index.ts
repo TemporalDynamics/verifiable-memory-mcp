@@ -181,6 +181,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // Keep the stdio server alive for long-lived MCP clients until stdin closes.
+  process.stdin.resume();
 }
 
 main().catch((error) => {

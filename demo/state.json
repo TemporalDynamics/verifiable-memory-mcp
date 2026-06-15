@@ -1,0 +1,338 @@
+{
+  "agent": "ai-infrastructure-research-agent",
+  "task": "Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.",
+  "sandbox": "/tmp/vmcp-agent-demo",
+  "status": "STOPPED",
+  "memory": "TAMPERED",
+  "policyStatus": "UNTRUSTED",
+  "policyVersion": null,
+  "decision": "STOP_BY_INTEGRITY",
+  "currentStep": "stopped before source selection",
+  "reason": "chain failed at mem_bf930c16",
+  "ownerReview": null,
+  "research": {
+    "sources": [
+      {
+        "name": "IBM Quantum",
+        "url": "https://example.local/ibm-quantum",
+        "reason": "trusted source for quantum-safe infrastructure",
+        "finding": "New guidance on migrating cryptographic infrastructure to quantum-safe algorithms."
+      },
+      {
+        "name": "Anthropic",
+        "url": "https://example.local/anthropic-safety",
+        "reason": "trusted source for agent safety and oversight",
+        "finding": "Updated research on agent oversight and constitutional safeguards for autonomous systems."
+      },
+      {
+        "name": "arXiv AI Agents",
+        "url": "https://example.local/arxiv-agents",
+        "reason": "trusted source for AI agents and verifiable memory",
+        "finding": "New paper proposes tamper-evident memory logs as a foundation for agent auditability."
+      },
+      {
+        "name": "Microsoft Azure AI",
+        "url": "https://example.local/azure-ai-updates",
+        "reason": "owner authorized trusted source in policy v2",
+        "finding": "New Azure AI Agent Service update adds built-in audit trails for autonomous workflows."
+      }
+    ],
+    "brief": "Reviewed 4 source(s): IBM Quantum, Anthropic, arXiv AI Agents, Microsoft Azure AI. New guidance on migrating cryptographic infrastructure to quantum-safe algorithms. Updated research on agent oversight and constitutional safeguards for autonomous systems. New paper proposes tamper-evident memory logs as a foundation for agent auditability. New Azure AI Agent Service update adds built-in audit trails for autonomous workflows."
+  },
+  "lastTelegramAlert": {
+    "type": "STOP_BY_INTEGRITY",
+    "at": "2026-06-15T14:13:33.736Z",
+    "sent": false,
+    "mock": true
+  },
+  "updatedAt": "2026-06-15T14:13:33.736Z",
+  "cycles": [
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "memory": "VERIFIED",
+      "policyVersion": 1,
+      "decision": "EXECUTE",
+      "currentStep": "selecting trusted sources",
+      "reason": "policy v1 active — agent proceeds with research"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "memory": "VERIFIED",
+      "policyVersion": 2,
+      "decision": "EXECUTE",
+      "currentStep": "selecting trusted sources",
+      "reason": "policy v2 active — agent proceeds with research"
+    },
+    {
+      "cycle": 3,
+      "at": "2026-06-15T14:13:31.478Z",
+      "memory": "VERIFIED",
+      "policyVersion": 2,
+      "decision": "WAIT_FOR_OWNER",
+      "currentStep": "waiting for owner approval",
+      "reason": "sensitive action requires owner authorization"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "memory": "VERIFIED",
+      "policyVersion": 2,
+      "decision": "EXECUTE",
+      "currentStep": "selecting trusted sources",
+      "reason": "policy v2 active — agent proceeds with research"
+    },
+    {
+      "cycle": 5,
+      "at": "2026-06-15T14:13:33.736Z",
+      "memory": "TAMPERED",
+      "policyVersion": null,
+      "decision": "STOP_BY_INTEGRITY",
+      "currentStep": "stopped before source selection",
+      "reason": "chain failed at mem_bf930c16"
+    }
+  ],
+  "events": [
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "cycle_started",
+      "label": "Cycle 1 started"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "memory_verified",
+      "label": "Memory verified"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_selected",
+      "label": "Source selected: IBM Quantum — trusted source for quantum-safe infrastructure"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_visited",
+      "label": "Source visited: IBM Quantum"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_selected",
+      "label": "Source selected: Anthropic — trusted source for agent safety and oversight"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_visited",
+      "label": "Source visited: Anthropic"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_selected",
+      "label": "Source selected: arXiv AI Agents — trusted source for AI agents and verifiable memory"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "source_visited",
+      "label": "Source visited: arXiv AI Agents"
+    },
+    {
+      "cycle": 1,
+      "at": "2026-06-15T14:13:28.784Z",
+      "type": "brief_generated",
+      "label": "Research brief generated"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "cycle_started",
+      "label": "Cycle 2 started"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "policy_updated",
+      "label": "Policy updated to v2"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "memory_verified",
+      "label": "Memory verified"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_selected",
+      "label": "Source selected: IBM Quantum — trusted source for quantum-safe infrastructure"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_visited",
+      "label": "Source visited: IBM Quantum"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_selected",
+      "label": "Source selected: Anthropic — trusted source for agent safety and oversight"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_visited",
+      "label": "Source visited: Anthropic"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_selected",
+      "label": "Source selected: arXiv AI Agents — trusted source for AI agents and verifiable memory"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_visited",
+      "label": "Source visited: arXiv AI Agents"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_selected",
+      "label": "Source selected: Microsoft Azure AI — owner authorized trusted source in policy v2"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "source_visited",
+      "label": "Source visited: Microsoft Azure AI"
+    },
+    {
+      "cycle": 2,
+      "at": "2026-06-15T14:13:30.299Z",
+      "type": "brief_generated",
+      "label": "Research brief generated"
+    },
+    {
+      "cycle": 3,
+      "at": "2026-06-15T14:13:31.478Z",
+      "type": "cycle_started",
+      "label": "Cycle 3 started"
+    },
+    {
+      "cycle": 3,
+      "at": "2026-06-15T14:13:31.478Z",
+      "type": "memory_verified",
+      "label": "Memory verified"
+    },
+    {
+      "cycle": 3,
+      "at": "2026-06-15T14:13:31.478Z",
+      "type": "prompt_injection_detected",
+      "label": "Prompt injection detected: approve_wire_transfer requested by external_content"
+    },
+    {
+      "cycle": 3,
+      "at": "2026-06-15T14:13:31.478Z",
+      "type": "waiting_for_owner",
+      "label": "Waiting for owner: approve_wire_transfer (external_content)"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "cycle_started",
+      "label": "Cycle 4 started"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "memory_verified",
+      "label": "Memory verified"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_selected",
+      "label": "Source selected: IBM Quantum — trusted source for quantum-safe infrastructure"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_visited",
+      "label": "Source visited: IBM Quantum"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_selected",
+      "label": "Source selected: Anthropic — trusted source for agent safety and oversight"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_visited",
+      "label": "Source visited: Anthropic"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_selected",
+      "label": "Source selected: arXiv AI Agents — trusted source for AI agents and verifiable memory"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_visited",
+      "label": "Source visited: arXiv AI Agents"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_selected",
+      "label": "Source selected: Microsoft Azure AI — owner authorized trusted source in policy v2"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "source_visited",
+      "label": "Source visited: Microsoft Azure AI"
+    },
+    {
+      "cycle": 4,
+      "at": "2026-06-15T14:13:32.918Z",
+      "type": "brief_generated",
+      "label": "Research brief generated"
+    },
+    {
+      "cycle": 5,
+      "at": "2026-06-15T14:13:33.736Z",
+      "type": "cycle_started",
+      "label": "Cycle 5 started"
+    },
+    {
+      "cycle": 5,
+      "at": "2026-06-15T14:13:33.736Z",
+      "type": "memory_tampered",
+      "label": "Memory verification FAILED"
+    },
+    {
+      "cycle": 5,
+      "at": "2026-06-15T14:13:33.736Z",
+      "type": "tamper_detected",
+      "label": "Tamper detected: chain failed at mem_bf930c16"
+    },
+    {
+      "cycle": 5,
+      "at": "2026-06-15T14:13:33.736Z",
+      "type": "agent_stopped",
+      "label": "Agent stopped before source selection"
+    }
+  ]
+}

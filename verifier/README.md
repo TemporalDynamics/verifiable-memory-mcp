@@ -33,6 +33,14 @@ a valid anchor is provided, in which case the anchor comparison decides.
 Generate a bundle with the `export` tool of the MCP server; anchor it by
 publishing the file's SHA-256 somewhere you don't control.
 
+For the live demo, keep everything on sandbox data:
+
+```bash
+VMCP_DATA_DIR=/tmp/vmcp-agent-demo bash verifier/anchor.sh /tmp/vmcp-anchor-demo
+```
+
+`anchor.sh` now refuses to run without an explicit `VMCP_DATA_DIR`.
+
 ## Acceptance evidence
 
 `node verifier/acceptance.mjs` spins up the real MCP server against a
@@ -51,13 +59,18 @@ record; it does not validate that the content itself is true or correct.
 
 ## Fail-closed guard
 
-`guard.mjs` is a pre-action gate: it verifies the full chain and exits 0 only
-if the recorded context validates. Wire it as a hard precondition:
+`demo/agent-loop.mjs --once` is a pre-action gate: it evaluates the latest
+request only after verifying the full chain. Wire it as a hard precondition:
 
 ```bash
-node verifier/guard.mjs && ./do-the-consequential-thing.sh
+node demo/agent-loop.mjs --once && ./do-the-consequential-thing.sh
 ```
 
-On integrity failure it refuses with exit code 2 and a machine-readable
-message. Honest scope: it makes silent tampering a visible refusal; it cannot
-stop an attacker who controls the machine from bypassing the gate itself.
+Exit codes in the demo:
+
+- `0` → `EXECUTE`
+- `2` → `STOP_BY_INTEGRITY`
+- `3` → `WAIT_FOR_OWNER` / `BLOCK_BY_POLICY` / `BLOCK_BY_AUTHORITY`
+
+Honest scope: it makes silent tampering a visible refusal; it cannot stop an
+attacker who controls the machine from bypassing the gate itself.

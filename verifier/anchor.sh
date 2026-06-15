@@ -11,8 +11,8 @@
 # run the printed `gh release create` command yourself, and note the exact time.
 #
 # Usage:
-#   ./verifier/anchor.sh [outdir]            # uses the default DB (~/.verifiable-memory-mcp)
-#   VMCP_DATA_DIR=/path ./verifier/anchor.sh # uses a specific DB (e.g. the demo DB)
+#   VMCP_DATA_DIR=/path ./verifier/anchor.sh [outdir]
+# Refuses to run against the default real memory unless ALLOW_REAL_DATA=1.
 set -euo pipefail
 
 # Preflight: fallar al inicio con mensaje claro, no a mitad del flujo.
@@ -33,6 +33,17 @@ ROOT="$(dirname "$HERE")"
 SERVER="$ROOT/dist/index.js"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUTDIR="${1:-$ROOT/anchor-out/$STAMP}"
+REAL_DIR="${HOME}/.verifiable-memory-mcp"
+
+[ -n "${VMCP_DATA_DIR:-}" ] || {
+  echo "ERROR: VMCP_DATA_DIR is required. Refusing to export unspecified memory." >&2
+  exit 1
+}
+
+if [ "${ALLOW_REAL_DATA:-0}" != "1" ] && [ "${VMCP_DATA_DIR}" = "$REAL_DIR" ]; then
+  echo "ERROR: Refusing to export real memory at $REAL_DIR without ALLOW_REAL_DATA=1." >&2
+  exit 1
+fi
 
 [ -f "$SERVER" ] || { echo "ERROR: $SERVER no existe. Corré 'npm run build' primero." >&2; exit 1; }
 mkdir -p "$OUTDIR"
@@ -44,7 +55,7 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"anchor.sh","version":"0.1"}}}' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"export","arguments":{}}}' \
-  | node "$SERVER" \
+  | VMCP_DATA_DIR="$VMCP_DATA_DIR" node "$SERVER" \
   | jq -r 'select(.id == 2) | .result.content[0].text' > "$BUNDLE"
 
 [ -s "$BUNDLE" ] || { echo "ERROR: el export volvió vacío." >&2; exit 1; }

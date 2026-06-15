@@ -7,7 +7,7 @@ import os
 import sqlite3
 import sys
 
-demo_dir = os.environ.get("VMCP_DEMO_DIR", "/tmp/vmcp-agent-demo")
+demo_dir = os.environ.get("VMCP_DATA_DIR") or os.environ.get("VMCP_DEMO_DIR", "/tmp/vmcp-agent-demo")
 db_path = os.path.join(demo_dir, "memory.db")
 
 if not os.path.isfile(db_path):

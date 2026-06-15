@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verifiable Memory MCP — Live Research Agent</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #131a22;
+    --border: #243140;
+    --text: #d7e2ec;
+    --muted: #7f93a6;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --accent: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 13px; margin: 0 0 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .card .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .card .value { font-size: 16px; font-weight: 600; word-break: break-word; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .badge.ok { background: rgba(52,211,153,0.15); color: var(--ok); }
+  .badge.warn { background: rgba(251,191,36,0.15); color: var(--warn); }
+  .badge.bad { background: rgba(248,113,113,0.15); color: var(--bad); }
+  .badge.neutral { background: rgba(127,147,166,0.15); color: var(--muted); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  .task {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .reason {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .columns {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+  .source-row {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    font-size: 13px;
+  }
+  .source-row:last-child { border-bottom: none; }
+  .source-row .name { font-weight: 700; color: var(--accent); }
+  .source-row .reason { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .source-row .finding { margin-top: 4px; }
+  .brief {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .empty { color: var(--muted); font-size: 13px; }
+  .owner-panel {
+    border: 1px solid var(--warn);
+    background: rgba(251,191,36,0.06);
+  }
+  .owner-panel .row { font-size: 13px; margin-bottom: 4px; }
+  .owner-panel .row .k { color: var(--muted); }
+  .commands {
+    margin-top: 10px;
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .commands code { color: var(--ok); }
+  .timeline {
+    max-height: 360px;
+    overflow: auto;
+  }
+  .timeline .row {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr;
+    gap: 10px;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .timeline .row:last-child { border-bottom: none; }
+  .timeline .cycle { color: var(--muted); }
+  .timeline .type { color: var(--accent); }
+  .error { color: var(--bad); font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>Verifiable Memory MCP — Live Research Agent</h1>
+  <div class="sub">Polling <code>state.json</code> every 2s — this dashboard is a static observer, it does not control the agent.</div>
+
+  <div class="panel">
+    <div class="task" id="agentLine">AGENT: —</div>
+    <div class="task" id="taskLine">TASK: —</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Agent Status</div>
+      <div class="value" id="agentStatus">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Memory</div>
+      <div class="value" id="memory">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Policy Version</div>
+      <div class="value" id="policyVersion">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Current Step</div>
+      <div class="value" id="currentStep">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Decision</div>
+      <div class="value" id="decision">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Last Telegram Alert</div>
+      <div class="value" id="telegramAlert">—</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="label" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Reason</div>
+    <div id="reason">—</div>
+  </div>
+
+  <div class="columns">
+    <div class="panel">
+      <h2>Research Canvas</h2>
+      <div id="researchBody"><div class="empty">No research yet — waiting for first EXECUTE cycle.</div></div>
+    </div>
+
+    <div class="panel" id="ownerPanel" style="display:none;">
+      <h2>Owner Review</h2>
+      <div id="ownerBody"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Timeline</h2>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <div id="errorBox" class="error"></div>
+
+  <script>
+    const STATUS_BADGE = { RUNNING: "ok", WAITING: "warn", STOPPED: "bad" };
+    const MEMORY_BADGE = { VERIFIED: "ok", TAMPERED: "bad", UNKNOWN: "neutral" };
+    const DECISION_BADGE = {
+      EXECUTE: "ok",
+      WAIT_FOR_OWNER: "warn",
+      STOP_BY_INTEGRITY: "bad",
+    };
+
+    function badge(text, cls) {
+      return `<span class="badge ${cls ?? "neutral"}">${text}</span>`;
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      try {
+        return new Date(iso).toLocaleTimeString();
+      } catch {
+        return iso;
+      }
+    }
+
+    async function tick() {
+      try {
+        const res = await fetch(`state.json?_=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`state.json: HTTP ${res.status}`);
+        const state = await res.json();
+        render(state);
+        document.getElementById("errorBox").textContent = "";
+      } catch (err) {
+        document.getElementById("errorBox").textContent =
+          `Waiting for state.json — run "npm run demo:e2e" or "npm run demo:agent-loop". (${err.message})`;
+      }
+    }
+
+    function render(state) {
+      document.getElementById("agentLine").textContent = `AGENT: ${state.agent ?? "—"}`;
+      document.getElementById("taskLine").textContent = `TASK: ${state.task ?? "—"}`;
+
+      document.getElementById("agentStatus").innerHTML = badge(state.status ?? "—", STATUS_BADGE[state.status]);
+      document.getElementById("memory").innerHTML = badge(state.memory ?? "—", MEMORY_BADGE[state.memory]);
+
+      let policyLabel = state.policyVersion != null ? `v${state.policyVersion}` : "—";
+      if (state.policyStatus === "UNTRUSTED") policyLabel += ` (${badge("UNTRUSTED", "bad")})`;
+      document.getElementById("policyVersion").innerHTML = policyLabel;
+
+      document.getElementById("currentStep").textContent = state.currentStep ?? "—";
+      document.getElementById("decision").innerHTML = badge(state.decision ?? "—", DECISION_BADGE[state.decision]);
+      document.getElementById("reason").textContent = state.reason ?? "—";
+
+      const alert = state.lastTelegramAlert;
+      document.getElementById("telegramAlert").textContent = alert
+        ? `${alert.type} (${alert.mock ? "mock" : alert.sent ? "sent" : "failed"}) @ ${fmtTime(alert.at)}`
+        : "(none)";
+
+      // Research canvas
+      const researchBody = document.getElementById("researchBody");
+      if (state.research && state.research.sources && state.research.sources.length > 0) {
+        const sourcesHtml = state.research.sources
+          .map(
+            (s) => `
+            <div class="source-row">
+              <div class="name">${s.name}</div>
+              <div class="reason">selected because: ${s.reason}</div>
+              <div class="finding">${s.finding ?? ""}</div>
+            </div>`
+          )
+          .join("");
+        researchBody.innerHTML =
+          sourcesHtml + `<div class="brief"><strong>Brief:</strong> ${state.research.brief ?? "—"}</div>`;
+      } else if (state.decision === "STOP_BY_INTEGRITY") {
+        researchBody.innerHTML = `<div class="empty">Agent stopped before source selection — memory integrity failed.</div>`;
+      } else if (state.decision === "WAIT_FOR_OWNER") {
+        researchBody.innerHTML = `<div class="empty">Research paused — waiting for owner review.</div>`;
+      } else {
+        researchBody.innerHTML = `<div class="empty">No research yet — waiting for first EXECUTE cycle.</div>`;
+      }
+
+      // Owner review panel
+      const ownerPanel = document.getElementById("ownerPanel");
+      const ownerBody = document.getElementById("ownerBody");
+      if (state.ownerReview) {
+        ownerPanel.style.display = "block";
+        ownerPanel.classList.add("owner-panel");
+        ownerBody.innerHTML = `
+          <div class="row"><span class="k">Action requested:</span> ${state.ownerReview.action}</div>
+          <div class="row"><span class="k">Request source:</span> ${state.ownerReview.requestSource}</div>
+          <div class="row"><span class="k">Reason:</span> ${state.ownerReview.reason}</div>
+          <div class="commands">
+            Run in another terminal:<br/>
+            <code>npm run demo:owner-approve</code> &nbsp;or&nbsp; <code>npm run demo:owner-reject</code><br/>
+            then <code>node demo/agent-loop.mjs --once</code>
+          </div>`;
+      } else {
+        ownerPanel.style.display = "none";
+        ownerPanel.classList.remove("owner-panel");
+      }
+
+      // Timeline
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = "";
+      const rows = [...(state.events ?? [])].reverse();
+      for (const row of rows) {
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="cycle">cycle ${row.cycle}</div>
+          <div class="type">${row.type}</div>
+          <div>${row.label}</div>
+        `;
+        timeline.appendChild(div);
+      }
+    }
+
+    tick();
+    setInterval(tick, 2000);
+  </script>
+</body>
+</html>

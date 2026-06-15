@@ -14,11 +14,15 @@
     "test": "vitest run",
     "demo:reset": "bash demo/reset.sh",
     "demo:setup": "node demo/setup.mjs",
-    "demo:run-agent": "node demo/run-agent.mjs",
-    "demo:authorized-update": "node demo/authorized-update.mjs",
-    "demo:delegate-sensitive-request": "node demo/delegate-sensitive-request.mjs",
+    "demo:agent-loop": "node demo/agent-loop.mjs",
+    "demo:authorized-source-update": "node demo/authorized-source-update.mjs",
+    "demo:prompt-injection": "node demo/prompt-injection.mjs",
+    "demo:owner-approve": "node demo/owner-approve.mjs",
+    "demo:owner-reject": "node demo/owner-reject.mjs",
     "demo:tamper": "python3 demo/tamper.py",
-    "demo:export": "node demo/export.mjs"
+    "demo:export": "node demo/export.mjs",
+    "demo:dashboard": "node demo/dashboard-server.mjs",
+    "demo:e2e": "node demo/e2e.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
