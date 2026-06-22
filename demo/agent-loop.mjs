@@ -34,6 +34,7 @@ import {
   readMemoryState,
   resolveDemoDataDir,
 } from "./common.mjs";
+import { createEvidencePackage } from "./evidence-package.mjs";
 import { sendIntegrityStopAlert, sendOwnerReviewAlert } from "./telegram-alert.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -196,8 +197,9 @@ async function runCycle(cycleNumber) {
 
   printCycle(cycleNumber, result);
 
-  const state = loadState() ?? { cycles: [], events: [], lastTelegramAlert: null, policyVersion: null };
+  const state = loadState() ?? { cycles: [], events: [], lastTelegramAlert: null, policyVersion: null, operatingMemory: null };
   const now = new Date().toISOString();
+  const om = state.operatingMemory || { policy: {}, ledger: { description: "", tickets: [] }, authority: {} };
 
   let eventLog = state.events ?? [];
   eventLog = pushEvent(eventLog, cycleNumber, now, "cycle_started", `Cycle ${cycleNumber} started`);
@@ -221,6 +223,14 @@ async function runCycle(cycleNumber) {
   let research = null;
 
   if (result.decision === "STOP_BY_INTEGRITY") {
+    om.ledger.tickets.push({
+      type: "integrity_stop",
+      actor: "system",
+      summary: "Memory was modified outside the authorized append-only flow",
+      status: "STOP_BY_INTEGRITY",
+      failedEntry: chain?.failedAt ?? null,
+      at: now,
+    });
     eventLog = pushEvent(eventLog, cycleNumber, now, "memory_tampered", "Memory verification FAILED");
     eventLog = pushEvent(eventLog, cycleNumber, now, "tamper_detected", `Tamper detected: ${result.reason}`);
     eventLog = pushEvent(
@@ -250,6 +260,15 @@ async function runCycle(cycleNumber) {
 
     const wasWaiting = state.decision === "WAIT_FOR_OWNER";
     if (!wasWaiting && result.ownerReview) {
+      om.ledger.tickets.push({
+        type: "external_instruction_detected",
+        actor: AGENT_NAME,
+        summary: "External content requested a sensitive action without owner authority",
+        source: result.ownerReview.requestSource,
+        action: result.ownerReview.action,
+        status: "OWNER_REVIEW_REQUIRED",
+        at: now,
+      });
       eventLog = pushEvent(
         eventLog,
         cycleNumber,
@@ -288,6 +307,14 @@ async function runCycle(cycleNumber) {
     eventLog = pushEvent(eventLog, cycleNumber, now, "memory_verified", "Memory verified");
     research = await runResearch(cycleNumber, result);
     for (const source of research.sources) {
+      om.ledger.tickets.push({
+        type: "visited_source",
+        actor: AGENT_NAME,
+        summary: `Visited selected source: ${source.name}`,
+        source: source.name,
+        url: source.url,
+        at: now,
+      });
       eventLog = pushEvent(eventLog, cycleNumber, now, "source_selected", `Source selected: ${source.name} — ${source.reason}`);
       eventLog = pushEvent(eventLog, cycleNumber, now, "source_visited", `Source visited: ${source.name}`);
     }
@@ -317,14 +344,30 @@ async function runCycle(cycleNumber) {
     reason: result.reason,
     ownerReview: result.ownerReview ?? null,
     research: research ?? (result.decision === "EXECUTE" ? null : state.research ?? null),
+    charter: state.charter ?? null,
+    operatingMemory: om,
+    evidencePackage: state.evidencePackage ?? null,
+    evidencePackages: state.evidencePackages ?? [],
     lastTelegramAlert: telegramAlert,
     updatedAt: now,
     cycles: [...(state.cycles ?? []), cycleSummary].slice(-50),
     events: eventLog,
   };
 
+  const evidencePackage = await createEvidencePackage({
+    state: nextState,
+    cycle: cycleNumber,
+    decision: result.decision,
+    memory: result.memory,
+    failedEntry: chain?.failedAt ?? null,
+    dataDir,
+  });
+  nextState.evidencePackage = evidencePackage;
+  nextState.evidencePackages = [...(state.evidencePackages ?? []), evidencePackage].slice(-20);
+
   writeFileSync(STATE_PATH, JSON.stringify(nextState, null, 2));
   console.log(`\nSTATE: ${STATE_PATH}`);
+  console.log(`ECO: ${evidencePackage.path}`);
 
   return result;
 }

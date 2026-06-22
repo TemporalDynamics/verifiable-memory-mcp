@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { env } from "node:process";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -65,6 +65,41 @@ function shellEscape(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
+async function callLocalTool(name, args = {}) {
+  process.env.VMCP_DATA_DIR = process.env.VMCP_DATA_DIR || DEFAULT_DEMO_DIR;
+  switch (name) {
+    case "remember": {
+      const { remember } = await import(pathToFileURL(join(ROOT, "dist", "tools", "remember.js")));
+      return remember(args);
+    }
+    case "recall": {
+      const { recall } = await import(pathToFileURL(join(ROOT, "dist", "tools", "recall.js")));
+      return recall(args);
+    }
+    case "verify": {
+      const { verify } = await import(pathToFileURL(join(ROOT, "dist", "tools", "verify.js")));
+      return verify(args);
+    }
+    case "chain": {
+      const { chainData } = await import(pathToFileURL(join(ROOT, "dist", "tools", "chain.js")));
+      return chainData(args);
+    }
+    case "timeline": {
+      const { timeline } = await import(pathToFileURL(join(ROOT, "dist", "tools", "timeline.js")));
+      return timeline(args);
+    }
+    case "export": {
+      const { exportEntries } = await import(pathToFileURL(join(ROOT, "dist", "tools", "export.js")));
+      return exportEntries(args);
+    }
+    default:
+      return {
+        content: [{ type: "text", text: `Unknown tool: ${name}` }],
+        isError: true,
+      };
+  }
+}
+
 export async function runToolBatch(toolCalls, options = {}) {
   const {
     dataDir = resolveDemoDataDir(options),
@@ -75,81 +110,38 @@ export async function runToolBatch(toolCalls, options = {}) {
   const sandboxDir = resolveDemoDataDir({ dataDir, allowRealData });
   const requests = createEnvelope(toolCalls, clientName);
 
-  return new Promise((resolvePromise, rejectPromise) => {
-    const payload = `${requests.map((request) => JSON.stringify(request)).join("\n")}\n`;
-    const script = `cat <<'__VMCP__' | VMCP_DATA_DIR=${shellEscape(sandboxDir)} node ${shellEscape(SERVER_PATH)}
-${payload}__VMCP__`;
-    const server = spawn("bash", ["-lc", script], {
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    const stdout = [];
-    const stderr = [];
-    const responses = new Map();
-    let buffer = "";
-    let settled = false;
-
-    const finish = (fn, value) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      fn(value);
-    };
-
-    const timer = setTimeout(() => {
-      server.kill();
-      finish(rejectPromise, new Error(`RPC timeout after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    server.stdout.on("data", (chunk) => {
-      const text = chunk.toString();
-      stdout.push(text);
-      buffer += text;
-      let nl;
-      while ((nl = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, nl).trim();
-        buffer = buffer.slice(nl + 1);
-        if (!line) continue;
-        try {
-          const message = JSON.parse(line);
-          if (message.id !== undefined) responses.set(message.id, message);
-        } catch {
-          // Ignore non-JSON lines; stdio transport is expected to stay clean.
-        }
-      }
-    });
-
-    server.stderr.on("data", (chunk) => {
-      stderr.push(chunk.toString());
-    });
-    server.on("error", (error) => finish(rejectPromise, error));
-
-    server.on("close", (code) => {
-      const missing = requests.filter((request) => request.id !== undefined && !responses.has(request.id));
-      if (code !== 0) {
-        finish(
-          rejectPromise,
-          new Error(
-            `MCP server exited with code ${code}. stderr:\n${stderr.join("").slice(0, 4000)}`
-          )
-        );
-        return;
-      }
-      if (missing.length > 0) {
-        finish(
-          rejectPromise,
-          new Error(
-            `Missing ${missing.length} MCP response(s). stdout:\n${stdout.join("").slice(0, 4000)}\n` +
-            `stderr:\n${stderr.join("").slice(0, 4000)}`
-          )
-        );
-        return;
-      }
-      finish(resolvePromise, { responses, stdout: stdout.join(""), stderr: stderr.join(""), dataDir: sandboxDir });
-    });
-
+  process.env.VMCP_DATA_DIR = sandboxDir;
+  const responses = new Map();
+  responses.set(1, {
+    jsonrpc: "2.0",
+    id: 1,
+    result: {
+      protocolVersion: "2024-11-05",
+      capabilities: { tools: {} },
+      serverInfo: { name: "verifiable-memory-mcp", version: "0.1.2" },
+    },
   });
+
+  for (let index = 0; index < toolCalls.length; index += 1) {
+    const call = toolCalls[index];
+    try {
+      responses.set(index + 2, {
+        jsonrpc: "2.0",
+        id: index + 2,
+        result: await callLocalTool(call.name, call.arguments ?? {}),
+      });
+    } catch (error) {
+      responses.set(index + 2, {
+        jsonrpc: "2.0",
+        id: index + 2,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  }
+
+  return { responses, stdout: "", stderr: "", dataDir: sandboxDir };
 }
 
 export async function callTools(toolCalls, options = {}) {

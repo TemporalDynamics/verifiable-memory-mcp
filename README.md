@@ -37,7 +37,8 @@ This server gives an MCP-compatible client a local memory store with:
 - per-entry hashing,
 - chain integrity verification,
 - chronological inspection,
-- portable export.
+- portable export,
+- a browser-based bundle verifier.
 
 The result is simple:
 
@@ -85,6 +86,79 @@ If someone inserts, removes, or reorders entries, the chain breaks.
 | `chain` | Validate the full chain and detect breaks or reordering |
 | `timeline` | List memories chronologically, optionally filtered by tag |
 | `export` | Export a portable, verifiable JSON bundle |
+
+## Evidence packages and verifier
+
+The primary evidence artifact is a portable `.eco` package. The verifier link or QR is only a fast way to open that package.
+
+Each `.eco` file is a JSON evidence envelope with:
+
+- `bundleText`: the exact exported `verifiable-memory-bundle`,
+- `anchor.bundleHash`: the SHA-256 hash of that bundle,
+- `manifest`: agent, cycle, decision, memory status, failed entry, and timestamp,
+- `report`: a human-readable explanation of what happened.
+
+The demo writes packages to:
+
+```text
+demo/evidence/
+```
+
+Examples:
+
+```text
+000_IDLE.eco
+001_EXECUTE.eco
+003_WAIT_FOR_OWNER.eco
+005_STOP_BY_INTEGRITY.eco
+latest.eco
+```
+
+This repository also includes a static verifier at:
+
+```text
+verifier/index.html
+```
+
+It verifies `.eco` packages and exported `verifiable-memory-bundle` files entirely in the browser. It checks entry content hashes, entry hashes, chain links, and optionally a SHA-256 anchor for the exact exported file.
+
+For a local demo:
+
+```bash
+npm run demo:export
+npm run demo:publish-local
+```
+
+Then open the `.eco` verifier URL printed by `demo:export`, or load:
+
+```text
+demo/evidence/latest.eco
+```
+
+Standalone verifier mode is also available:
+
+```bash
+npm run demo:verifier
+```
+
+If the package was exported before tampering, the verifier should show `INTACT`. If it was exported after direct SQLite tampering, it should show `ALTERED`.
+
+`demo:publish-local` serves the dashboard, verifier, and `.eco` files from one local origin. That makes this URL shape work for QR codes or another device on the same network:
+
+```text
+http://<your-local-ip>:4190/verifier/index.html?eco=/evidence/latest.eco
+```
+
+To share a public verifier URL, set `DEMO_PUBLIC_BASE_URL` before exporting:
+
+```bash
+export DEMO_PUBLIC_BASE_URL=https://demo.example.com
+npm run demo:export
+```
+
+The export script will print both the local and the public verifier URLs.
+
+**Phone/external device verification** requires HTTPS for browser Web Crypto APIs. For judge or investor demos, use an HTTPS domain, a tunnel (ngrok, cloudflared), or drag-and-drop the `.eco` file into the standalone verifier as the reliable fallback.
 
 ## Why MCP
 
@@ -229,6 +303,54 @@ npm run demo:e2e
 This uses `/tmp/vmcp-agent-demo` and never exports `~/.verifiable-memory-mcp`
 unless you explicitly opt into real data elsewhere.
 
+For a step-by-step recording flow:
+
+```bash
+export VMCP_DATA_DIR=/tmp/transparent-agent-demo
+npm run demo:scenario:reset
+npm run demo:cycle
+npm run demo:owner-update
+npm run demo:cycle
+npm run demo:prompt-injection
+npm run demo:cycle
+npm run demo:owner-approve
+npm run demo:cycle
+npm run demo:tamper
+npm run demo:cycle-after-tamper
+npm run demo:export
+npm run demo:publish-local
+```
+
+## Telegram demo control
+
+The demo can also be controlled through a Telegram bot. It only accepts a fixed set of demo commands and runs the same local scripts as the terminal flow.
+
+Required environment:
+
+```bash
+export TELEGRAM_BOT_TOKEN=...
+export TELEGRAM_CHAT_ID=...
+export VMCP_DATA_DIR=/tmp/transparent-agent-demo
+export DEMO_PUBLIC_BASE_URL=http://<your-local-ip>:4190
+npm run demo:telegram
+```
+
+Available bot commands:
+
+```text
+/ready
+/cycle
+/owner_update
+/prompt_injection
+/approve
+/reject
+/tamper
+/export
+/eco
+/status
+/help
+```
+
 ## Search behavior
 
 `recall` currently uses text-based retrieval, not embeddings.
@@ -268,6 +390,12 @@ The best way to understand this repository is:
 **a public, concrete demonstration that agent memory can be append-only, inspectable, and tamper-evident through MCP.**
 
 It is intentionally narrower than the broader architectural questions it points toward.
+
+## Strategy docs
+
+- [Transparent Agent Evidence](docs/strategy/transparent-agent-evidence.md)
+- [ECO and ECOX Model](docs/strategy/eco-and-ecox-model.md)
+- [ECO Verifier Universal Model](docs/strategy/eco-verifier-universal.md)
 
 ## License
 
