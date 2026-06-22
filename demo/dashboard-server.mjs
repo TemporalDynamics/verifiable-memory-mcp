@@ -14,6 +14,7 @@ import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(HERE, "..");
 const PORT = Number(process.argv[2] ?? process.env.PORT ?? 4180);
 
 const CONTENT_TYPES = {
@@ -22,6 +23,7 @@ const CONTENT_TYPES = {
   ".js": "text/javascript",
   ".mjs": "text/javascript",
   ".css": "text/css",
+  ".eco": "application/json",
 };
 
 const server = createServer(async (req, res) => {
@@ -29,8 +31,12 @@ const server = createServer(async (req, res) => {
   let pathname = url.pathname === "/" ? "/dashboard.html" : url.pathname;
   pathname = normalize(pathname).replace(/^(\.\.[/\\])+/, "");
 
-  const filePath = join(HERE, pathname);
-  if (!filePath.startsWith(HERE)) {
+  let base = HERE;
+  if (pathname.startsWith("/verifier/") || pathname.startsWith("/anchor-out/")) {
+    base = ROOT;
+  }
+  const filePath = join(base, pathname);
+  if (!filePath.startsWith(base)) {
     res.writeHead(403).end("forbidden");
     return;
   }

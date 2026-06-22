@@ -18,6 +18,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { callTools, textContent } from "../demo/mcp-client.mjs";
+import { createEvidencePackage } from "../demo/evidence-package.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -169,6 +170,132 @@ try {
   r = await verifyBundle(bundleBytes.slice(0, bundleBytes.length - 10), anchor);
   check("S9 archivo truncado + ancla del original → rojo/anchor",
     r.verdict === "red" && r.failure?.check === "anchor");
+
+  // S11 — ECO envelope structure (Task 2)
+  let s11EcoBytes = null;
+  {
+    const ecoPkg = await createEvidencePackage({
+      state: {
+        agent: "test-agent",
+        task: "test task",
+        events: [],
+        cycles: [],
+        research: null,
+        owner: "test-owner",
+        flowCreator: "test-owner",
+        policyVersion: 1,
+        ownerReview: null,
+        policyStatus: "TRUSTED",
+      },
+      cycle: 1,
+      decision: "EXECUTE",
+      memory: "VERIFIED",
+      dataDir,
+    });
+    const ecoText = readFileSync(ecoPkg.path, "utf-8");
+    const eco = JSON.parse(ecoText);
+    s11EcoBytes = enc.encode(ecoText);
+    check("S11 ECO format field", eco.format === "eco.evidence-artifact", `expected "eco.evidence-artifact", got ${eco.format}`);
+    check("S11 ECO origin_app", eco.origin_app === "verifiable-memory-mcp", `expected "verifiable-memory-mcp", got ${eco.origin_app}`);
+    check("S11 ECO artifact_id present", Boolean(eco.artifact_id), `missing artifact_id`);
+    check("S11 ECO verification present", Boolean(eco.verification), `missing verification`);
+    check("S11 ECO artifact_type", eco.artifact_type === "run_snapshot", `expected "run_snapshot", got ${eco.artifact_type}`);
+    check("S11 ECO lifecycle", eco.lifecycle === "SNAPSHOT", `expected "SNAPSHOT", got ${eco.lifecycle}`);
+    check("S11 ECO authority_summary present", Boolean(eco.authority_summary), `missing authority_summary`);
+    check("S11 ECO policy_summary present", Boolean(eco.policy_summary), `missing policy_summary`);
+    check("S11 ECO ledger_summary present", Boolean(eco.ledger_summary), `missing ledger_summary`);
+    check("S11 ECO assets_index present", Boolean(eco.assets_index), `missing assets_index`);
+    // backward compat fields
+    check("S11 ECO version field preserved", eco.version === "0.1", `expected "0.1", got ${eco.version}`);
+    check("S11 ECO manifest present", Boolean(eco.manifest), `missing manifest`);
+    check("S11 ECO anchor present", Boolean(eco.anchor), `missing anchor`);
+    check("S11 ECO bundle present", Boolean(eco.bundle), `missing bundle`);
+    check("S11 ECO report present", Boolean(eco.report), `missing report`);
+    try { rmSync(ecoPkg.path, { force: true }); } catch {}
+  }
+
+  // S12 — verifyInput with SNAPSHOT ECO (known origin)
+  {
+    r = await globalThis.VMCPVerifier.verifyInput(s11EcoBytes, null);
+    check("S12 verifyInput snapshot → green",
+      r.verdict === "green", JSON.stringify(r.failure));
+    check("S12 package.origin_app",
+      r.package?.origin_app === "verifiable-memory-mcp",
+      `got ${r.package?.origin_app}`);
+    check("S12 package.lifecycle",
+      r.package?.lifecycle === "SNAPSHOT",
+      `got ${r.package?.lifecycle}`);
+    check("S12 package.verification.integrity",
+      r.package?.verification?.integrity === "VALID",
+      `got ${r.package?.verification?.integrity}`);
+    check("S12 package.artifact_type",
+      r.package?.artifact_type === "run_snapshot",
+      `got ${r.package?.artifact_type}`);
+  }
+
+  // S13 — ECO with unknown origin_app
+  {
+    const ecoObj = JSON.parse(new TextDecoder().decode(s11EcoBytes));
+    ecoObj.origin_app = "some-other-app";
+    const unknownBytes = enc.encode(JSON.stringify(ecoObj));
+    r = await globalThis.VMCPVerifier.verifyInput(unknownBytes, null);
+    check("S13 unknown origin → green (integrity ok)",
+      r.verdict === "green", JSON.stringify(r.failure));
+    check("S13 package.origin_app = some-other-app",
+      r.package?.origin_app === "some-other-app",
+      `got ${r.package?.origin_app}`);
+  }
+
+  // S14 — ECO with tampered bundle content (modify bundleText + anchor mismatch)
+  {
+    const ecoObj = JSON.parse(new TextDecoder().decode(s11EcoBytes));
+    const bundleObj = JSON.parse(ecoObj.bundleText);
+    if (bundleObj.entries?.[0]) {
+      bundleObj.entries[0].content = "MODIFIED: " + bundleObj.entries[0].content;
+      const newBundleText = JSON.stringify(bundleObj, null, 2);
+      const newBundleHash = await sha256Hex(enc.encode(newBundleText));
+      ecoObj.bundleText = newBundleText;
+      ecoObj.bundle = bundleObj;
+      ecoObj.anchor.bundleHash = newBundleHash;
+      const tamperedBytes = enc.encode(JSON.stringify(ecoObj));
+      r = await globalThis.VMCPVerifier.verifyInput(tamperedBytes, null);
+      check("S14 tampered bundle content → red",
+        r.verdict === "red", JSON.stringify(r.failure));
+    }
+  }
+
+  // S15 — owner review ECO via verifyInput
+  {
+    const ecoPkg2 = await createEvidencePackage({
+      state: {
+        agent: "test-agent",
+        task: "test task",
+        events: [],
+        cycles: [],
+        research: null,
+        owner: "test-owner",
+        flowCreator: "test-owner",
+        policyVersion: 1,
+        ownerReview: { action: "approve_wire_transfer", requestSource: "external_content", reason: "test" },
+        policyStatus: "TRUSTED",
+      },
+      cycle: 2,
+      decision: "WAIT_FOR_OWNER",
+      memory: "VERIFIED",
+      dataDir,
+    });
+    const eco2Bytes = enc.encode(readFileSync(ecoPkg2.path, "utf-8"));
+    r = await globalThis.VMCPVerifier.verifyInput(eco2Bytes, null);
+    check("S15 owner review → green (chain intact)",
+      r.verdict === "green", JSON.stringify(r.failure));
+    check("S15 owner review lifecycle OWNER_REVIEW",
+      r.package?.lifecycle === "OWNER_REVIEW",
+      `got ${r.package?.lifecycle}`);
+    check("S15 owner review artifact_type owner_review",
+      r.package?.artifact_type === "owner_review",
+      `got ${r.package?.artifact_type}`);
+    try { rmSync(ecoPkg2.path, { force: true }); } catch {}
+  }
 
   console.log(`\nResultado: ${passCount} PASS, ${failCount} FAIL`);
   process.exitCode = failCount === 0 ? 0 : 1;

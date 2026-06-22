@@ -80,6 +80,10 @@
   .circle.red   { background: var(--red);   border: 4px solid var(--red);   color: #fff; }
   .circle.busy  { border-style: solid; }
   .verdict { font-size: 1.35rem; font-weight: 700; letter-spacing: .14em; margin: .9rem 0 0; min-height: 1.6rem; }
+  #lifecycleArea { display: flex; flex-direction: column; align-items: center; gap: .2rem; margin: .5rem 0 0; }
+  .badge-row { margin: 0; font-size: .85rem; display: flex; gap: .4rem; align-items: center; }
+  .badge-label { color: var(--muted); }
+  .badge-value { font-weight: 600; }
   .verdict.green { color: var(--green); }
   .verdict.red   { color: var(--red); }
   #statusline { text-align: center; color: var(--muted); font-size: .9rem; margin: .35rem 0 1rem; min-height: 1.3em; }
@@ -121,8 +125,8 @@
 <main>
   <header>
     <div>
-      <h1 id="t_title">Verificador de integridad</h1>
-      <p class="sub">verifiable-memory-bundle · v0.1</p>
+      <h1 id="t_title">ECOsystem Verifier</h1>
+      <p class="sub" id="t_sub">.eco verifier</p>
     </div>
     <button id="langToggle" type="button" aria-label="Switch language">EN</button>
   </header>
@@ -130,6 +134,15 @@
   <div class="light">
     <div class="circle" id="circle" aria-hidden="true">·</div>
     <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+    <div id="lifecycleArea">
+      <p class="badge-row" id="integrityRow" hidden><span class="badge-label" id="t_integrity">Integrity</span> <span class="badge-value" id="integrityValue"></span></p>
+      <p class="badge-row" id="lifecycleRow" hidden><span class="badge-label" id="t_lifecycle">Lifecycle</span> <span class="badge-value" id="lifecycleValue"></span></p>
+      <p class="badge-row" id="originRow" hidden><span class="badge-label" id="t_origin">Origin</span> <span class="badge-value" id="originValue"></span></p>
+    </div>
+    <div id="unknownModule" hidden>
+      <p class="verdict green" id="unknownTitle"></p>
+      <p id="unknownBody" style="color:var(--muted);font-size:.85rem;margin:.35rem 0 0;max-width:24rem;text-align:center"></p>
+    </div>
     <p id="statusline"></p>
   </div>
 
@@ -210,6 +223,33 @@
       (e.prevHash === null || typeof e.prevHash === "string");
   }
 
+  function textToBytes(text) {
+    return new TextEncoder().encode(text);
+  }
+
+  function tryParseJson(bytes) {
+    try {
+      return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    } catch {
+      return null;
+    }
+  }
+
+  function extractEvidencePackage(bytes) {
+    const parsed = tryParseJson(bytes);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      (parsed.format === "vmcp-evidence-package" || parsed.format === "eco.evidence-artifact") &&
+      typeof parsed.bundleText === "string" &&
+      parsed.anchor &&
+      typeof parsed.anchor.bundleHash === "string"
+    ) {
+      return parsed;
+    }
+    return null;
+  }
+
   // bytes: Uint8Array | ArrayBuffer con los bytes EXACTOS del archivo.
   // anchorRaw: string | null — sha256 hex esperado del archivo completo.
   // Devuelve: { verdict: "green"|"red"|"error", anchor, bundleHash, entryCount,
@@ -225,7 +265,8 @@
       version: null,
       checkedEntries: 0,
       chainConsistent: null,
-      failure: null
+      failure: null,
+      package: null
     };
 
     result.bundleHash = await sha256HexOfBytes(bytes);
@@ -289,7 +330,13 @@
 
       const recomputedContentHash = await sha256HexOfText(entry.content);
       if (recomputedContentHash !== entry.contentHash) {
-        chainFailure = { check: "content", entryId: id, index: i };
+        chainFailure = {
+          check: "content",
+          entryId: id,
+          index: i,
+          expected: entry.contentHash,
+          actual: recomputedContentHash
+        };
         result.checkedEntries = i + 1;
         break;
       }
@@ -297,7 +344,13 @@
       const canonical = buildEntryCanonical(entry.contentHash, entry.prevHash, entry.createdAt);
       const recomputedEntryHash = await sha256HexOfText(canonical);
       if (recomputedEntryHash !== entry.entryHash) {
-        chainFailure = { check: "entry", entryId: id, index: i };
+        chainFailure = {
+          check: "entry",
+          entryId: id,
+          index: i,
+          expected: entry.entryHash,
+          actual: recomputedEntryHash
+        };
         result.checkedEntries = i + 1;
         break;
       }
@@ -329,7 +382,36 @@
     return result;
   }
 
+  async function verifyInput(bytes, anchorRaw) {
+    const eco = extractEvidencePackage(bytes);
+    if (!eco) return verifyBundle(bytes, anchorRaw);
+
+    const anchor = anchorRaw && String(anchorRaw).trim()
+      ? anchorRaw
+      : eco.anchor.bundleHash;
+    const result = await verifyBundle(textToBytes(eco.bundleText), anchor);
+    result.package = {
+      format: eco.format,
+      eco_version: eco.eco_version ?? null,
+      version: eco.version ?? null,
+      origin_app: eco.origin_app ?? null,
+      artifact_id: eco.artifact_id ?? null,
+      artifact_type: eco.artifact_type ?? null,
+      lifecycle: eco.lifecycle ?? null,
+      manifest: eco.manifest ?? null,
+      packageHash: eco.packageHash?.value ?? null,
+      report: eco.report ?? null,
+      authority_summary: eco.authority_summary ?? null,
+      policy_summary: eco.policy_summary ?? null,
+      ledger_summary: eco.ledger_summary ?? null,
+      assets_index: eco.assets_index ?? null,
+      verification: eco.verification ?? null,
+    };
+    return result;
+  }
+
   globalThis.VMCPVerifier = {
+    verifyInput,
     verifyBundle,
     sha256HexOfBytes,
     sha256HexOfText,
@@ -344,13 +426,26 @@
 (function () {
   const I18N = {
     es: {
-      title: "Verificador de integridad",
-      drop: "Arrastra y suelta el bundle aquí",
+      title: "ECOsistema Verifier",
+      drop: "Arrastra y suelta un .eco o bundle aquí",
       pick: "Elegir archivo",
       anchor: "Hash de ancla (sha256 del archivo, opcional)",
       details: "Detalles técnicos",
-      idle: "Carga un bundle exportado para verificarlo.",
+      idle: "Carga un .eco exportado para verificarlo.",
       busy: "Verificando…",
+      integrity: "Integridad",
+      lifecycle: "Ciclo de vida",
+      valid: "VÁLIDA",
+      tampered: "ALTERADA",
+      unknown: "DESCONOCIDA",
+      origin: "Origen",
+      final: "FINAL",
+      snapshot: "SNAPSHOT",
+      superseded: "SUPERSEDIDO",
+      ownerReview: "REVISIÓN_OWNER",
+      incident: "INCIDENTE",
+      unknownModuleTitle: "Integridad verificada",
+      unknownModuleBody: "Este artefacto contiene evidencia específica de la aplicación que requiere un visor autorizado.",
       green: "ÍNTEGRO",
       red: "ALTERADO",
       chainOk: "La cadena de hashes es consistente.",
@@ -369,21 +464,37 @@
       insecure: "Este verificador necesita un contexto seguro (https:// o localhost).",
       fetchErr: "No se pudo cargar la URL del bundle.",
       dEntries: "Entradas", dChecked: "Verificadas", dExported: "Exportado",
-      dBundleHash: "sha256 del archivo", dFailCheck: "Check fallido",
-      dFailEntry: "Entry", dAnchor: "Ancla", dLimit: "Alcance",
+      dBundleHash: "sha256 del bundle", dFailCheck: "Check fallido",
+      dFailEntry: "Entry", dExpected: "Hash esperado", dActual: "Hash actual",
+      dPackage: "Paquete", dDecision: "Decisión", dAnchor: "Ancla", dLimit: "Alcance",
+      dOrigin: "App origen", dArtifactType: "Tipo artefacto", dLifecycle: "Ciclo vida",
+      dIntegrity: "Integridad",
       dLimitText: "tamper-evident: detecta alteración; no valida veracidad del contenido",
       aMatch: "coincide", aMismatch: "no coincide", aNone: "no provista", aInvalid: "inválida",
       limit: "Tamper-evident: este verificador detecta alteraciones del registro; no valida que el contenido sea correcto. Toda la verificación ocurre localmente en tu dispositivo — no se envía nada a ningún servidor.",
       toggle: "EN", langName: "es"
     },
     en: {
-      title: "Integrity verifier",
-      drop: "Drag and drop the bundle here",
+      title: "ECOsystem Verifier",
+      drop: "Drag and drop a .eco or bundle here",
       pick: "Choose file",
       anchor: "Anchor hash (sha256 of the file, optional)",
       details: "Technical details",
-      idle: "Load an exported bundle to verify it.",
+      idle: "Load an exported .eco to verify it.",
       busy: "Verifying…",
+      integrity: "Integrity",
+      lifecycle: "Lifecycle",
+      valid: "VALID",
+      tampered: "TAMPERED",
+      unknown: "UNKNOWN",
+      origin: "Origin",
+      final: "FINAL",
+      snapshot: "SNAPSHOT",
+      superseded: "SUPERSEDED",
+      ownerReview: "OWNER_REVIEW",
+      incident: "INCIDENT",
+      unknownModuleTitle: "Integrity verified",
+      unknownModuleBody: "This artifact contains app-specific evidence that requires an authorized viewer.",
       green: "INTACT",
       red: "ALTERED",
       chainOk: "The hash chain is consistent.",
@@ -402,8 +513,11 @@
       insecure: "This verifier requires a secure context (https:// or localhost).",
       fetchErr: "Could not load the bundle URL.",
       dEntries: "Entries", dChecked: "Checked", dExported: "Exported",
-      dBundleHash: "file sha256", dFailCheck: "Failed check",
-      dFailEntry: "Entry", dAnchor: "Anchor", dLimit: "Scope",
+      dBundleHash: "bundle sha256", dFailCheck: "Failed check",
+      dFailEntry: "Entry", dExpected: "Expected hash", dActual: "Actual hash",
+      dPackage: "Package", dDecision: "Decision", dAnchor: "Anchor", dLimit: "Scope",
+      dOrigin: "Origin app", dArtifactType: "Artifact type", dLifecycle: "Lifecycle",
+      dIntegrity: "Integrity",
       dLimitText: "tamper-evident: detects alteration; does not validate content truthfulness",
       aMatch: "match", aMismatch: "mismatch", aNone: "not provided", aInvalid: "invalid",
       limit: "Tamper-evident: this verifier detects alterations of the record; it does not validate that the content is correct. All verification happens locally on your device — nothing is sent to any server.",
@@ -434,6 +548,37 @@
     if (lastResult) render(lastResult); else renderIdle();
   }
 
+  const lifecycleArea = document.getElementById("lifecycleArea");
+  const integrityRow = document.getElementById("integrityRow");
+  const lifecycleRow = document.getElementById("lifecycleRow");
+  const originRow = document.getElementById("originRow");
+  const integrityValue = document.getElementById("integrityValue");
+  const lifecycleValue = document.getElementById("lifecycleValue");
+  const originValue = document.getElementById("originValue");
+  const unknownModule = document.getElementById("unknownModule");
+  const unknownTitle = document.getElementById("unknownTitle");
+  const unknownBody = document.getElementById("unknownBody");
+
+  function hideAllStatus() {
+    [lifecycleArea, unknownModule].forEach(el => el.hidden = true);
+  }
+
+  function showBadges(r) {
+    const pkg = r.package || {};
+    const ver = pkg.verification || {};
+    const integrity = ver.integrity || (r.verdict === "green" ? "VALID" : r.verdict === "red" ? "TAMPERED" : "UNKNOWN");
+    const lifecycle = ver.lifecycle || pkg.lifecycle || "UNKNOWN";
+    const origin = pkg.origin_app || "verifiable-memory-mcp";
+
+    lifecycleArea.hidden = false;
+    integrityRow.hidden = false;
+    lifecycleRow.hidden = false;
+    originRow.hidden = false;
+    integrityValue.textContent = integrity;
+    lifecycleValue.textContent = lifecycle;
+    originValue.textContent = origin;
+  }
+
   function renderIdle(msg) {
     circle.className = "circle";
     circle.textContent = "·";
@@ -441,6 +586,7 @@
     verdict.textContent = "";
     statusline.textContent = msg || t("idle");
     details.hidden = true;
+    hideAllStatus();
   }
 
   function renderBusy() {
@@ -449,6 +595,7 @@
     verdict.className = "verdict";
     verdict.textContent = "";
     statusline.textContent = t("busy");
+    hideAllStatus();
   }
 
   function failureText(f) {
@@ -462,15 +609,32 @@
   function render(r) {
     lastResult = r;
     detailList.innerHTML = "";
+    hideAllStatus();
 
     if (r.verdict === "green") {
-      circle.className = "circle green"; circle.textContent = "✓";
-      verdict.className = "verdict green"; verdict.textContent = t("green");
-      statusline.textContent = t("chainOk") + " " +
-        (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
+      const origin = r.package?.origin_app;
+      const isKnownOrigin = !origin || origin === "verifiable-memory-mcp";
+
+      if (!isKnownOrigin) {
+        // Unknown module: show generic integrity message
+        circle.className = "circle green"; circle.textContent = "✓";
+        verdict.className = "verdict green"; verdict.textContent = "";
+        unknownModule.hidden = false;
+        unknownTitle.textContent = t("unknownModuleTitle");
+        unknownBody.textContent = t("unknownModuleBody");
+        statusline.textContent = t("chainOk") + " " +
+          (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
+      } else {
+        circle.className = "circle green"; circle.textContent = "✓";
+        verdict.className = "verdict green"; verdict.textContent = t("green");
+        showBadges(r);
+        statusline.textContent = t("chainOk") + " " +
+          (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
+      }
     } else if (r.verdict === "red") {
       circle.className = "circle red"; circle.textContent = "✕";
       verdict.className = "verdict red"; verdict.textContent = t("red");
+      showBadges(r);
       statusline.textContent = r.failure && r.failure.check === "anchor"
         ? t("anchorMismatch") + (r.chainConsistent ? " (" + t("chainAlsoOk") + ")" : "")
         : failureText(r.failure);
@@ -481,6 +645,16 @@
       return;
     }
 
+    if (r.package?.manifest?.label) addDetail("dPackage", r.package.manifest.label, true);
+    if (r.package?.manifest?.decision) addDetail("dDecision", r.package.manifest.decision, true);
+    if (r.package?.origin_app) addDetail("dOrigin", r.package.origin_app, true);
+    if (r.package?.artifact_type) addDetail("dArtifactType", r.package.artifact_type, true);
+    if (r.package?.lifecycle || r.package?.verification?.lifecycle) {
+      addDetail("dLifecycle", r.package.verification?.lifecycle || r.package.lifecycle, true);
+    }
+    if (r.package?.verification?.integrity) {
+      addDetail("dIntegrity", r.package.verification.integrity, true);
+    }
     if (r.entryCount !== null) addDetail("dEntries", String(r.entryCount), true);
     addDetail("dChecked", String(r.checkedEntries), true);
     if (r.exportedAt) addDetail("dExported", r.exportedAt);
@@ -492,6 +666,8 @@
     if (r.failure && r.failure.check) {
       addDetail("dFailCheck", failureText(r.failure), true);
       if (r.failure.entryId) addDetail("dFailEntry", r.failure.entryId);
+      if (r.failure.expected) addDetail("dExpected", r.failure.expected);
+      if (r.failure.actual) addDetail("dActual", r.failure.actual);
     }
     addDetail("dLimit", t("dLimitText"), true);
     details.hidden = false;
@@ -511,7 +687,7 @@
     if (!lastBytes) return;
     renderBusy();
     try {
-      const r = await globalThis.VMCPVerifier.verifyBundle(lastBytes, anchorInput.value);
+      const r = await globalThis.VMCPVerifier.verifyInput(lastBytes, anchorInput.value);
       render(r);
     } catch (err) {
       renderIdle(String(err && err.message ? err.message : err));
@@ -557,10 +733,11 @@
 
   const params = new URLSearchParams(location.search);
   if (params.get("anchor")) anchorInput.value = params.get("anchor");
+  const ecoUrl = params.get("eco");
   const bundleUrl = params.get("bundle");
-  if (bundleUrl) {
+  if (ecoUrl || bundleUrl) {
     renderBusy();
-    fetch(bundleUrl)
+    fetch(ecoUrl || bundleUrl)
       .then((res) => { if (!res.ok) throw new Error(t("fetchErr")); return res.arrayBuffer(); })
       .then((buf) => { lastBytes = new Uint8Array(buf); run(); })
       .catch(() => renderIdle(t("fetchErr")));
