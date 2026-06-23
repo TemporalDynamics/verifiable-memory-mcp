@@ -48,20 +48,13 @@
   .wrap { max-width: 56rem; margin: 0 auto; padding: 0 1.25rem; }
   a { color: var(--accent); }
   code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-
-  /* nav */
-  nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1.1rem 0; gap: 1rem;
-  }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 0; gap: 1rem; }
   .brand { font-weight: 700; letter-spacing: -.01em; font-size: 1rem; }
   .brand .dot { color: var(--accent); }
   .nav-links { display: flex; gap: 1.1rem; font-size: .9rem; }
   .nav-links a { color: var(--muted); text-decoration: none; }
   .nav-links a:hover { color: var(--ink); }
   @media (max-width: 540px) { .nav-links { display: none; } }
-
-  /* hero */
   .hero { padding: 2.5rem 0 1rem; }
   .tag {
     display: inline-block; font-size: .72rem; letter-spacing: .12em;
@@ -75,7 +68,6 @@
   }
   .lead { font-size: 1.15rem; color: var(--muted); max-width: 52ch; margin: 0 0 1.6rem; }
   .lead strong { color: var(--ink); font-weight: 600; }
-
   .install {
     display: flex; align-items: stretch; gap: 0;
     background: var(--card); border: 1px solid var(--line);
@@ -88,7 +80,6 @@
     padding: 0 1rem; cursor: pointer; font-size: .8rem; min-width: 4.5rem;
   }
   .install button:hover { color: var(--ink); }
-
   .cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: .4rem; }
   .btn {
     display: inline-flex; align-items: center; gap: .4rem;
@@ -99,14 +90,10 @@
   .btn.ghost { border: 1px solid var(--line); color: var(--ink); }
   .btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
   .meta { color: var(--muted); font-size: .82rem; margin-top: 1.1rem; }
-
-  /* sections */
   section { padding: 2.6rem 0; border-top: 1px solid var(--line); }
   .kicker { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
   h2 { font-size: clamp(1.4rem, 3.5vw, 1.9rem); letter-spacing: -.01em; margin: 0 0 .8rem; }
   .section-lead { color: var(--muted); max-width: 56ch; margin: 0 0 1.6rem; }
-
-  /* flow */
   .flow { display: flex; flex-wrap: wrap; gap: .6rem; align-items: stretch; }
   .step {
     flex: 1; min-width: 9rem;
@@ -118,8 +105,6 @@
   .step p { margin: 0; font-size: .88rem; color: var(--muted); }
   .step.stop { border-color: var(--red); }
   .step.stop h3 { color: var(--red); }
-
-  /* eco states */
   .states { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.2rem; }
   .pill {
     display: inline-flex; align-items: center; gap: .5rem;
@@ -133,8 +118,6 @@
   .pill.tampered .ring { background: var(--red); }
   .pill.unknown { color: var(--muted); }
   .pill.unknown .ring { background: var(--idle); }
-
-  /* grid cards */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .8rem; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -143,8 +126,6 @@
   .card h3 { margin: 0 0 .35rem; font-size: 1rem; }
   .card p { margin: 0; font-size: .88rem; color: var(--muted); }
   .card .soon { font-size: .7rem; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; margin-left: .4rem; }
-
-  /* eco demo box */
   .eco {
     background: var(--card); border: 1px solid var(--line); border-radius: 14px;
     padding: 1.2rem; font-size: .85rem;
@@ -153,18 +134,26 @@
   .eco .row:last-child { border-bottom: 0; }
   .eco .k { color: var(--muted); }
   .eco .v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; overflow-wrap: anywhere; }
-
   .honest {
     background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent);
     border-radius: 10px; padding: 1rem 1.2rem; margin-top: 1.4rem;
     font-size: .9rem; color: var(--muted);
   }
   .honest strong { color: var(--ink); }
-
   ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
   ul.checks li { display: flex; gap: .6rem; align-items: flex-start; font-size: .92rem; }
   ul.checks li::before { content: "→"; color: var(--accent); font-weight: 700; }
-
+  .ecosystem-list { display: grid; gap: .9rem; }
+  .ecosystem-item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .ecosystem-item h3 { margin: 0 0 .35rem; font-size: 1rem; }
+  .ecosystem-item p { margin: 0; font-size: .9rem; color: var(--muted); }
+  .ecosystem-item .subhead { color: var(--ink); font-weight: 600; margin-bottom: .25rem; }
+  .video-cta { margin-top: .7rem; font-size: .92rem; }
   footer { border-top: 1px solid var(--line); padding: 2rem 0 3rem; color: var(--muted); font-size: .82rem; }
   footer .links { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-bottom: .9rem; }
   footer a { color: var(--ink); text-decoration: none; }
@@ -186,7 +175,6 @@
     </div>
   </nav>
 
-  <!-- HERO -->
   <header class="hero">
     <span class="tag">Open source · MIT · MCP server</span>
     <h1>Give your AI agents memory they can verify.</h1>
@@ -210,7 +198,6 @@
     <p class="meta">v0.1.2 · published on npm · 6 MCP tools · local-first, runs offline</p>
   </header>
 
-  <!-- HOW IT WORKS -->
   <section id="how">
     <p class="kicker">How it works</p>
     <h2>Verify → Stop → Export → Verify again</h2>
@@ -243,7 +230,6 @@
     </div>
   </section>
 
-  <!-- DEMO -->
   <section id="demo">
     <p class="kicker">Demo</p>
     <h2>Don't trust me — verify it yourself.</h2>
@@ -258,69 +244,70 @@
     </div>
     <div class="states">
       <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
-      <span class="pill tampered"><span class="ring"></span>TAMPERED — altered detected</span>
+      <span class="pill tampered"><span class="ring"></span>ALTERED — chain broken</span>
+      <span class="pill unknown"><span class="ring"></span>UNKNOWN — no valid anchor</span>
     </div>
   </section>
 
-  <!-- ECO EVIDENCE -->
   <section id="eco">
     <p class="kicker">Evidence</p>
-    <h2>The ECO is the proof.</h2>
+    <h2>A portable package, not a screenshot.</h2>
     <p class="section-lead">
-      An ECO is a portable evidence receipt. It captures what happened, what the agent relied on,
-      and whether the artifact can be independently verified. The stop is the behavior; the ECO is
-      the proof; the verifier is the credibility.
+      The main evidence artifact is an <span class="mono">.eco</span> package: the exported bundle,
+      an integrity anchor, agent decision metadata, and a human-readable report. The verifier checks it entirely in the browser.
     </p>
     <div class="eco">
-      <div class="row"><span class="k">artifact</span><span class="v">005_STOP_BY_INTEGRITY.eco</span></div>
-      <div class="row"><span class="k">integrity</span><span class="v" style="color:var(--red)">TAMPERED</span></div>
-      <div class="row"><span class="k">lifecycle</span><span class="v">OWNER_REVIEW</span></div>
-      <div class="row"><span class="k">agent decision</span><span class="v">STOP_BY_INTEGRITY</span></div>
-      <div class="row"><span class="k">reason</span><span class="v">memory modified outside approved flow</span></div>
-    </div>
-    <div class="states">
-      <span class="pill valid"><span class="ring"></span>VALID</span>
-      <span class="pill tampered"><span class="ring"></span>TAMPERED</span>
-      <span class="pill unknown"><span class="ring"></span>UNKNOWN</span>
+      <div class="row"><span class="k">bundleText</span><span class="v">verifiable-memory-bundle</span></div>
+      <div class="row"><span class="k">anchor.bundleHash</span><span class="v">sha256(...)</span></div>
+      <div class="row"><span class="k">manifest</span><span class="v">agent · cycle · decision · status</span></div>
+      <div class="row"><span class="k">report</span><span class="v">human-readable explanation</span></div>
     </div>
     <div class="honest">
-      <strong>What this does and doesn't promise.</strong> The system does not guarantee the
-      content is correct — it guarantees that no one altered it without that being detectable.
-      Integrity is not correctness. It is tamper-<em>evident</em>, not tamper-proof: every change
-      is detectable. The public anchor is what stops someone from rewriting the whole local store.
+      <strong>Important:</strong> this proves integrity state and evidence portability. It does not claim to prove that an AI answer is universally correct.
     </div>
   </section>
 
-  <!-- USE CASES -->
-  <section id="use-cases">
-    <p class="kicker">Where it fits</p>
-    <h2>Anywhere agents act on memory they need to prove.</h2>
-    <ul class="checks">
-      <li><strong>Recruiting agents</strong> — trace why a candidate was recommended, with verifiable reasons.</li>
-      <li><strong>Internal operations</strong> — prove why an autonomous workflow stopped or continued.</li>
-      <li><strong>Compliance review</strong> — preserve evidence behind agent-assisted decisions.</li>
-      <li><strong>Memory governance</strong> — detect unauthorized changes before the agent acts.</li>
-    </ul>
-  </section>
-
-  <!-- ECOSYSTEM -->
   <section id="ecosystem">
     <p class="kicker">Ecosystem</p>
     <h2>Part of a broader evidence ecosystem.</h2>
     <p class="section-lead">
-      This is one focused, public building block. It connects to a wider family of tools —
-      the public behavior is shown; the mechanisms that connect them stay confidential.
+      This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
     </p>
-    <div class="grid">
-      <div class="card"><h3>Talo</h3><p>Recruiting agents with traceable recommendations.</p></div>
-      <div class="card"><h3>EcoSign</h3><p>Document evidence and independent verification.</p></div>
-      <div class="card"><h3>CustodyArt</h3><p>Provenance and custody for creative assets.</p></div>
-      <div class="card"><h3>WITH</h3><p>Personal knowledge and adaptive assistant layer.</p></div>
-      <div class="card"><h3>ECO Verify</h3><p>Independent verification for evidence artifacts.</p></div>
+    <div class="ecosystem-list">
+      <div class="ecosystem-item">
+        <h3><a href="https://github.com/TemporalDynamics/AppCrew">AppCrew</a></h3>
+        <p class="subhead">Observable runtime for governed AI agents.</p>
+        <p>AppCrew coordinates agent execution, run state, approval gates, auditable timelines, and evidence hooks. It is the reusable runtime layer underneath domain applications.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>Talo</h3>
+        <p class="subhead">First vertical application built on AppCrew.</p>
+        <p>Talo shows the architecture in a live recruiting workflow: agents search, review, shortlist, and prepare outreach while verifying memory before action and stopping when integrity fails.</p>
+        <p class="video-cta"><strong>Watch Talo in action</strong><br>_Add video link here._</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>Portable ECO verification</h3>
+        <p class="subhead">Independent verification for ECO evidence artifacts.</p>
+        <p>The goal is portability: evidence should be re-checkable outside the original system, so verification can remain credible across workflows, devices, and operators.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3><a href="https://github.com/TemporalDynamics/ecosign-public">EcoSign</a></h3>
+        <p class="subhead">Evidence and verification workflows for digital documents.</p>
+        <p>EcoSign applies the same evidence logic to document integrity, export, and independent verification in document-centered workflows.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>CustodyArt</h3>
+        <p class="subhead">Provenance and custody for creative digital assets.</p>
+        <p>CustodyArt extends the same custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>WITH</h3>
+        <p class="subhead">Higher semantic layer for adaptive memory systems.</p>
+        <p>WITH represents the broader memory and meaning layer of the ecosystem: long-term continuity, contextual recall, and adaptive assistance built on verifiable history.</p>
+      </div>
     </div>
   </section>
 
-  <!-- BUILD / DEPLOY -->
   <section id="build">
     <p class="kicker">Build &amp; deploy</p>
     <h2>Start open source. Grow into evidence workflows.</h2>
