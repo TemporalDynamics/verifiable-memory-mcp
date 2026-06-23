@@ -71,7 +71,7 @@
   .install {
     display: flex; align-items: stretch; gap: 0;
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 12px; overflow: hidden; max-width: 26rem; margin-bottom: 1rem;
+    border-radius: 12px; overflow: hidden; max-width: 100%; margin-bottom: 1rem;
   }
   .install code { flex: 1; padding: .8rem 1rem; font-size: .9rem; }
   .install button {
@@ -119,6 +119,7 @@
   .pill.unknown { color: var(--muted); }
   .pill.unknown .ring { background: var(--idle); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .8rem; }
+  .decision-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .9rem; }
   .card {
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 1.1rem;
@@ -126,6 +127,57 @@
   .card h3 { margin: 0 0 .35rem; font-size: 1rem; }
   .card p { margin: 0; font-size: .88rem; color: var(--muted); }
   .card .soon { font-size: .7rem; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; margin-left: .4rem; }
+  .card .eyebrow {
+    display: inline-block;
+    margin-bottom: .55rem;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card.primary-path { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .action-list { list-style: none; padding: 0; margin: .8rem 0 0; display: grid; gap: .45rem; }
+  .action-list li { color: var(--muted); font-size: .88rem; }
+  .action-list li::before { content: "→ "; color: var(--accent); font-weight: 700; }
+  .stack { display: grid; gap: .85rem; }
+  .code-stack { display: grid; gap: .75rem; max-width: 42rem; }
+  .code-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: .95rem 1rem;
+  }
+  .code-card h3 { margin: 0 0 .45rem; font-size: .95rem; }
+  .code-card p { margin: 0 0 .7rem; font-size: .86rem; color: var(--muted); }
+  .code-card pre {
+    margin: 0;
+    overflow-x: auto;
+    font: .84rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .note {
+    font-size: .86rem;
+    color: var(--muted);
+    margin-top: .85rem;
+  }
+  .video-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.15rem;
+  }
+  .closing {
+    padding: 2rem 0 2.8rem;
+    text-align: left;
+  }
+  .closing p {
+    font-size: 1.1rem;
+    max-width: 42rem;
+    margin: 0;
+    color: var(--ink);
+  }
   .eco {
     background: var(--card); border: 1px solid var(--line); border-radius: 14px;
     padding: 1.2rem; font-size: .85rem;
@@ -167,8 +219,9 @@
   <nav>
     <div class="brand">verifiable-memory<span class="dot">·</span>mcp</div>
     <div class="nav-links">
-      <a href="#how">How it works</a>
-      <a href="#demo">Demo</a>
+      <a href="#paths">Try it</a>
+      <a href="./sandbox/index.html">Sandbox</a>
+      <a href="#local">Local install</a>
       <a href="#eco">Evidence</a>
       <a href="#ecosystem">Ecosystem</a>
       <a href="https://github.com/TemporalDynamics/verifiable-memory-mcp">GitHub</a>
@@ -185,68 +238,129 @@
       and exports portable evidence of what happened.
     </p>
 
-    <div class="install">
-      <code id="cmd">npm install verifiable-memory-mcp</code>
-      <button id="copy" aria-label="Copy install command">Copy</button>
-    </div>
-
     <div class="cta">
-      <a class="btn primary" href="#demo">See the demo</a>
-      <a class="btn ghost" href="https://github.com/TemporalDynamics/verifiable-memory-mcp">View on GitHub</a>
+      <a class="btn primary" href="./sandbox/index.html">Try the sandbox</a>
+      <a class="btn ghost" href="#local">Install and run locally</a>
     </div>
 
     <p class="meta">v0.1.2 · published on npm · 6 MCP tools · local-first, runs offline</p>
   </header>
 
-  <section id="how">
-    <p class="kicker">How it works</p>
-    <h2>Verify → Stop → Export → Verify again</h2>
+  <section id="paths">
+    <p class="kicker">Choose your path</p>
+    <h2>Two ways to evaluate the same integrity story.</h2>
     <p class="section-lead">
-      Every memory entry is append-only, timestamped, and cryptographically linked to the
-      one before it — a hash chain. Any later change to a past entry breaks the link and
-      becomes detectable.
+      Non-technical reviewers should be able to understand the stop condition in the browser.
+      Technical reviewers should be able to reproduce the same flow locally without trusting this page.
     </p>
-    <div class="flow">
-      <div class="step">
-        <div class="n">01</div>
-        <h3>Verify</h3>
-        <p>Before acting, the agent re-checks the integrity of its operational memory.</p>
+    <div class="decision-grid">
+      <div class="card primary-path">
+        <span class="eyebrow">For judges and operators</span>
+        <h3>Browser-first sandbox</h3>
+        <p>Follow a guided, repeatable path: run the agent, inspect the checkpoint, trigger an integrity failure, export the ECO, and verify it yourself.</p>
+        <ul class="action-list">
+          <li>No setup required to understand the pattern</li>
+          <li>Shows integrity-before-action, not open-ended search quality</li>
+          <li>Ends in an independent browser verification step</li>
+        </ul>
       </div>
-      <div class="step stop">
-        <div class="n">02</div>
-        <h3>Stop</h3>
-        <p>If memory was modified outside the approved flow, the agent halts instead of acting on it.</p>
-      </div>
-      <div class="step">
-        <div class="n">03</div>
-        <h3>Export ECO</h3>
-        <p>It writes a portable evidence receipt: what it relied on and what the integrity check found.</p>
-      </div>
-      <div class="step">
-        <div class="n">04</div>
-        <h3>Verify ECO</h3>
-        <p>Anyone can re-check that receipt independently — no backend, no trust in our screen.</p>
+      <div class="card">
+        <span class="eyebrow">For developers</span>
+        <h3>Install and reproduce locally</h3>
+        <p>Run the exact sequence on your own machine: reset the scenario, execute the cycle, tamper with memory, export the ECO, and verify the artifact independently.</p>
+        <ul class="action-list">
+          <li>Concrete scripts, not pseudo-code</li>
+          <li>Portable verifier remains usable outside the demo</li>
+          <li>Local-first flow with no backend trust assumptions</li>
+        </ul>
       </div>
     </div>
   </section>
 
-  <section id="demo">
-    <p class="kicker">Demo</p>
-    <h2>Don't trust me — verify it yourself.</h2>
+  <section id="sandbox">
+    <p class="kicker">How it works</p>
+    <h2>Sandbox: verify, stop, export, verify again.</h2>
     <p class="section-lead">
-      The verifier is a single static page. Load an exported bundle and it recomputes the whole
-      chain in your own browser with WebCrypto. Green means intact. Change one character and it
-      turns red. Try it on your own phone.
+      This is the product story a visitor should understand without extra explanation. The sandbox is controlled and repeatable: it demonstrates governed agent behavior under integrity failure, not a free-form live search demo.
     </p>
+    <div class="flow">
+      <div class="step">
+        <div class="n">01</div>
+        <h3>Load brief</h3>
+        <p>A sample brief or criterion is loaded into verifiable memory as the starting state.</p>
+      </div>
+      <div class="step">
+        <div class="n">02</div>
+        <h3>Run agent</h3>
+        <p>The agent reads that state and executes with an auditable memory checkpoint before acting.</p>
+      </div>
+      <div class="step">
+        <div class="n">03</div>
+        <h3>Generate evidence</h3>
+        <p>The system records the cycle and prepares a portable ECO package describing what the agent relied on.</p>
+      </div>
+      <div class="step">
+        <div class="n">04</div>
+        <h3>Alter memory</h3>
+        <p>A later modification outside the approved flow changes the state the next run would inherit.</p>
+      </div>
+      <div class="step stop">
+        <div class="n">05</div>
+        <h3>Stop before action</h3>
+        <p>Before continuing, the agent detects that inconsistency and halts instead of acting on corrupted context.</p>
+      </div>
+      <div class="step">
+        <div class="n">06</div>
+        <h3>Export ECO</h3>
+        <p>The resulting evidence package captures the stop condition, the integrity finding, and the run metadata.</p>
+      </div>
+      <div class="step">
+        <div class="n">07</div>
+        <h3>Verify independently</h3>
+        <p>Anyone can re-check that package in the browser without trusting our backend or our screen.</p>
+      </div>
+    </div>
     <div class="cta">
-      <a class="btn primary" href="./verifier/index.html">Open the verifier</a>
-      <a class="btn ghost" href="./demo/dashboard.html">View the agent dashboard</a>
+      <a class="btn primary" href="./sandbox/index.html">Open the sandbox walkthrough</a>
+      <a class="btn ghost" href="./verifier/index.html">Open the verifier</a>
     </div>
-    <div class="states">
-      <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
-      <span class="pill tampered"><span class="ring"></span>ALTERED — chain broken</span>
-      <span class="pill unknown"><span class="ring"></span>UNKNOWN — no valid anchor</span>
+  </section>
+
+  <section id="local">
+    <p class="kicker">Local install</p>
+    <h2>Reproduce the same flow on your own machine.</h2>
+    <p class="section-lead">
+      The browser-first path is the easiest way to understand the idea. The local path is there so developers and technical reviewers can run the same sequence without trusting the landing.
+    </p>
+    <div class="code-stack">
+      <div class="code-card">
+        <h3>1. Install</h3>
+        <p>Install the package and its local demo tooling.</p>
+        <div class="install">
+          <code id="cmd">npm install -g verifiable-memory-mcp</code>
+          <button id="copy" aria-label="Copy install command">Copy</button>
+        </div>
+      </div>
+      <div class="code-card">
+        <h3>2. Run the clean cycle</h3>
+        <p>Reset the scenario, load the sample state, and execute one clean pass.</p>
+        <pre>npm run demo:scenario:reset
+npm run demo:cycle</pre>
+      </div>
+      <div class="code-card">
+        <h3>3. Trigger the stop condition</h3>
+        <p>Alter the ledger outside the approved flow, then execute the next cycle.</p>
+        <pre>npm run demo:tamper
+npm run demo:cycle-after-tamper</pre>
+      </div>
+      <div class="code-card">
+        <h3>4. Export and verify</h3>
+        <p>Export the ECO package, then open the independent verifier in your browser.</p>
+        <pre>npm run demo:export
+npm run demo:verifier</pre>
+      </div>
     </div>
+    <p class="note">The point is not general AI correctness. The point is whether the agent can prove the state it acted from and stop when that state changes.</p>
   </section>
 
   <section id="eco">
@@ -264,6 +378,29 @@
     </div>
     <div class="honest">
       <strong>Important:</strong> this proves integrity state and evidence portability. It does not claim to prove that an AI answer is universally correct.
+    </div>
+    <div class="states">
+      <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
+      <span class="pill tampered"><span class="ring"></span>ALTERED — chain broken</span>
+      <span class="pill unknown"><span class="ring"></span>UNKNOWN — no valid anchor</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="./verifier/index.html">Verify an ECO in the browser</a>
+      <a class="btn ghost" href="./sandbox/index.html">Open the sandbox walkthrough</a>
+    </div>
+  </section>
+
+  <section id="talo">
+    <p class="kicker">Vertical proof</p>
+    <h2>The same control pattern already lives inside Talo.</h2>
+    <p class="section-lead">
+      Talo is the first vertical application built on AppCrew. It applies the same integrity-before-action pattern to a recruiting workflow: agents search, review, shortlist, and prepare outreach while remaining visible to operators and stoppable under integrity failure.
+    </p>
+    <div class="video-card">
+      <h3><a href="https://github.com/TemporalDynamics/Talo">Talo</a></h3>
+      <p class="subhead">Recruiting workflow built on AppCrew.</p>
+      <p>Talo shows that verifiable memory is not only a lab artifact. The same pattern already supports a live vertical workflow where agents remain observable, auditable, and stoppable before action.</p>
+      <p class="video-cta"><a href="https://github.com/TemporalDynamics/Talo">Explore the public Talo repo</a></p>
     </div>
   </section>
 
@@ -283,7 +420,7 @@
         <h3>Talo</h3>
         <p class="subhead">First vertical application built on AppCrew.</p>
         <p>Talo shows the architecture in a live recruiting workflow: agents search, review, shortlist, and prepare outreach while verifying memory before action and stopping when integrity fails.</p>
-        <p class="video-cta"><strong>Watch Talo in action</strong><br>_Add video link here._</p>
+        <p class="video-cta"><a href="https://github.com/TemporalDynamics/Talo">View the public repo</a></p>
       </div>
       <div class="ecosystem-item">
         <h3>Portable ECO verification</h3>
@@ -308,19 +445,8 @@
     </div>
   </section>
 
-  <section id="build">
-    <p class="kicker">Build &amp; deploy</p>
-    <h2>Start open source. Grow into evidence workflows.</h2>
-    <div class="grid">
-      <div class="card"><h3>Open-source core</h3><p>MIT, on npm, local-first. Install and run today.</p></div>
-      <div class="card"><h3>Private deployments</h3><p>Run it on your own infrastructure. <span class="soon">roadmap</span></p></div>
-      <div class="card"><h3>Evidence retention</h3><p>Keep and re-verify ECO artifacts over time. <span class="soon">roadmap</span></p></div>
-      <div class="card"><h3>Verification dashboards</h3><p>Audit-friendly views over agent memory. <span class="soon">roadmap</span></p></div>
-    </div>
-    <div class="honest">
-      <strong>Post-quantum-ready by design.</strong> The signing, anchoring and verification layer
-      is built to migrate toward post-quantum primitives without changing the evidence logic.
-    </div>
+  <section class="closing">
+    <p>AI agents should not just act. They should prove the state they acted from, and stop when that state changes.</p>
   </section>
 
 </div>
@@ -331,7 +457,7 @@
       <a href="https://github.com/TemporalDynamics/verifiable-memory-mcp">GitHub</a>
       <a href="https://www.npmjs.com/package/verifiable-memory-mcp">npm</a>
       <a href="./verifier/index.html">Verifier demo</a>
-      <a href="#how">How it works</a>
+      <a href="#sandbox">How it works</a>
     </div>
     <p class="fine">
       verifiable-memory-mcp · MIT · a public, deployable implementation of verifiable agent memory.<br>

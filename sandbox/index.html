@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verifiable Memory MCP — Sandbox</title>
+<meta name="description" content="Controlled public sandbox for verifiable-memory-mcp: clean run, owner gate, tamper stop, and independent ECO verification.">
+<style>
+  :root {
+    --bg: #f4f1e8;
+    --panel: #ffffff;
+    --ink: #1c1a18;
+    --muted: #68635d;
+    --line: #ddd6c8;
+    --accent: #165f56;
+    --accent-soft: #e2f0ed;
+    --warn: #8b5e00;
+    --warn-soft: #f8edd1;
+    --bad: #a02a21;
+    --bad-soft: #f8e4e1;
+    --good: #135f3f;
+    --good-soft: #e0efe7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12110d;
+      --panel: #1b1814;
+      --ink: #f0ece3;
+      --muted: #aba399;
+      --line: #363127;
+      --accent: #53c4b1;
+      --accent-soft: #102e2a;
+      --warn: #f2c35c;
+      --warn-soft: #3a2d10;
+      --bad: #ff8e84;
+      --bad-soft: #3d1714;
+      --good: #65d49b;
+      --good-soft: #10271a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 68rem; margin: 0 auto; padding: 0 1.25rem; }
+  a { color: var(--accent); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+  }
+  .brand { font-weight: 700; letter-spacing: -.01em; }
+  .nav-links { display: flex; gap: 1rem; font-size: .92rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; }
+  .nav-links a:hover { color: var(--ink); }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+  header { padding: 2.2rem 0 1.5rem; }
+  .tag {
+    display: inline-block;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: .28rem .72rem;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -.025em;
+    max-width: 13ch;
+  }
+  .lead {
+    max-width: 52rem;
+    margin: 0 0 1.2rem;
+    color: var(--muted);
+    font-size: 1.08rem;
+  }
+  .lead strong { color: var(--ink); }
+  .cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1rem; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    min-height: 44px;
+    padding: .72rem 1.1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .btn.primary { background: var(--ink); color: var(--bg); }
+  .btn.ghost { border: 1px solid var(--line); color: var(--ink); }
+  section { padding: 2.2rem 0; border-top: 1px solid var(--line); }
+  .kicker {
+    margin: 0 0 .45rem;
+    color: var(--accent);
+    font-size: .74rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  h2 {
+    margin: 0 0 .8rem;
+    font-size: clamp(1.45rem, 3vw, 1.95rem);
+    letter-spacing: -.02em;
+  }
+  .section-lead { max-width: 56ch; color: var(--muted); margin: 0 0 1.4rem; }
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: .7rem;
+  }
+  .step, .scenario {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1rem;
+  }
+  .step.stop, .scenario.stop { border-color: var(--bad); }
+  .step .n {
+    color: var(--muted);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+  }
+  .step h3, .scenario h3 { margin: .4rem 0 .35rem; font-size: 1rem; }
+  .step p, .scenario p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .9rem;
+  }
+  .journey {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: .8rem;
+    margin-bottom: 1.25rem;
+  }
+  .journey-step {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: .95rem 1rem;
+  }
+  .journey-step .n {
+    color: var(--muted);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+  }
+  .journey-step h3 {
+    margin: .42rem 0 .35rem;
+    font-size: .98rem;
+  }
+  .journey-step p {
+    margin: 0;
+    color: var(--muted);
+    font-size: .88rem;
+  }
+  .journey-step.stop { border-color: var(--bad); }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    border-radius: 999px;
+    padding: .4rem .8rem;
+    font-size: .8rem;
+    font-weight: 700;
+    margin-bottom: .8rem;
+  }
+  .badge.good { background: var(--good-soft); color: var(--good); }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.bad { background: var(--bad-soft); color: var(--bad); }
+  .meta-list { display: grid; gap: .35rem; margin: .85rem 0 0; font-size: .86rem; color: var(--muted); }
+  .meta-list strong { color: var(--ink); }
+  .link-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem; }
+  .link-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: .5rem .75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: .86rem;
+  }
+  .code-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1rem;
+    max-width: 46rem;
+  }
+  pre {
+    margin: .7rem 0 0;
+    font: .88rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .callout {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    color: var(--muted);
+    max-width: 54rem;
+  }
+  .callout strong { color: var(--ink); }
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2rem 0 2.8rem;
+    color: var(--muted);
+    font-size: .82rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">verifiable-memory<span style="color:var(--accent)">·</span>mcp sandbox</div>
+    <div class="nav-links">
+      <a href="#flow">Flow</a>
+      <a href="#scenarios">Scenarios</a>
+      <a href="#local">Run locally</a>
+      <a href="../verifier/index.html">Verifier</a>
+      <a href="../index.html">Landing</a>
+    </div>
+  </nav>
+
+  <header>
+    <span class="tag">Controlled public sandbox</span>
+    <h1>See the stop condition before you install anything.</h1>
+    <p class="lead">
+      This is a <strong>guided, static sandbox</strong> built from real evidence artifacts already generated by
+      <span class="mono">verifiable-memory-mcp</span>. It shows the full integrity story without pretending to be a live open-ended search product:
+      a clean run, a human approval gate, an out-of-band memory change, and the final stop before action.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="#scenarios">Open the sandbox walkthrough</a>
+      <a class="btn ghost" href="#local">Install and run locally</a>
+    </div>
+  </header>
+
+  <section id="flow">
+    <p class="kicker">Flow</p>
+    <h2>The exact pattern this project is trying to prove.</h2>
+    <p class="section-lead">
+      The point is not generic AI quality. The point is whether an agent can prove the state it relied on and stop when that state changes outside the approved flow.
+    </p>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><h3>Load brief</h3><p>A research brief and policy state are stored in append-only memory.</p></div>
+      <div class="step"><div class="n">02</div><h3>Run clean cycle</h3><p>The agent executes while memory remains verified.</p></div>
+      <div class="step"><div class="n">03</div><h3>Owner gate</h3><p>A sensitive instruction is detected and routed for human review.</p></div>
+      <div class="step"><div class="n">04</div><h3>Continue safely</h3><p>After approval, the agent can resume under a known policy version.</p></div>
+      <div class="step stop"><div class="n">05</div><h3>Alter memory</h3><p>A later out-of-band change breaks the trusted chain.</p></div>
+      <div class="step stop"><div class="n">06</div><h3>Stop before action</h3><p>The next run detects that change and halts before acting on corrupted context.</p></div>
+      <div class="step"><div class="n">07</div><h3>Verify ECO</h3><p>The incident can be checked independently in the browser from the exported artifact.</p></div>
+    </div>
+  </section>
+
+  <section id="scenarios">
+    <p class="kicker">Scenarios</p>
+    <h2>Walk through the real artifacts.</h2>
+    <p class="section-lead">
+      These cards are backed by `.eco` files already published in this repository. They are not screenshots and they do not require our backend to be trusted.
+    </p>
+    <div class="journey">
+      <div class="journey-step">
+        <div class="n">A</div>
+        <h3>Start with a clean run</h3>
+        <p>Open the verified execution artifact first. This is the happy path under trusted memory.</p>
+      </div>
+      <div class="journey-step">
+        <div class="n">B</div>
+        <h3>Inspect the owner gate</h3>
+        <p>Then open the owner-review artifact to see how a sensitive instruction gets paused instead of executed.</p>
+      </div>
+      <div class="journey-step stop">
+        <div class="n">C</div>
+        <h3>End with the stop condition</h3>
+        <p>Finally open the integrity incident artifact and verify that the agent refused to continue after memory changed.</p>
+      </div>
+    </div>
+    <div class="scenario-grid">
+      <article class="scenario">
+        <div class="badge good">Verified run</div>
+        <h3>Clean execution under trusted memory</h3>
+        <p>The agent runs with verified memory and policy v2 active, completing the research cycle with trusted sources.</p>
+        <div class="meta-list">
+          <div><strong>Artifact:</strong> <span class="mono">004_EXECUTE.eco</span></div>
+          <div><strong>Decision:</strong> EXECUTE</div>
+          <div><strong>Memory:</strong> VERIFIED</div>
+          <div><strong>Cycle:</strong> 4</div>
+        </div>
+        <div class="link-row">
+          <a class="link-chip" href="../demo/evidence/004_EXECUTE.eco">Open ECO</a>
+          <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/004_EXECUTE.eco">Verify this ECO</a>
+        </div>
+      </article>
+
+      <article class="scenario">
+        <div class="badge warn">Owner review</div>
+        <h3>External content triggers a human gate</h3>
+        <p>A sensitive request appears in external content. The system does not execute it blindly; it pauses and waits for owner review.</p>
+        <div class="meta-list">
+          <div><strong>Artifact:</strong> <span class="mono">003_WAIT_FOR_OWNER.eco</span></div>
+          <div><strong>Decision:</strong> WAIT_FOR_OWNER</div>
+          <div><strong>Memory:</strong> VERIFIED</div>
+          <div><strong>Cycle:</strong> 3</div>
+        </div>
+        <div class="link-row">
+          <a class="link-chip" href="../demo/evidence/003_WAIT_FOR_OWNER.eco">Open ECO</a>
+          <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/003_WAIT_FOR_OWNER.eco">Verify this ECO</a>
+        </div>
+      </article>
+
+      <article class="scenario stop">
+        <div class="badge bad">Integrity stop</div>
+        <h3>Out-of-band memory change stops the agent</h3>
+        <p>A later modification breaks the memory chain. On the next cycle, the agent refuses to proceed and exports incident evidence instead.</p>
+        <div class="meta-list">
+          <div><strong>Artifact:</strong> <span class="mono">005_STOP_BY_INTEGRITY.eco</span></div>
+          <div><strong>Decision:</strong> STOP_BY_INTEGRITY</div>
+          <div><strong>Memory:</strong> TAMPERED</div>
+          <div><strong>Failed entry:</strong> <span class="mono">mem_34ee4c13</span></div>
+        </div>
+        <div class="link-row">
+          <a class="link-chip" href="../demo/evidence/005_STOP_BY_INTEGRITY.eco">Open ECO</a>
+          <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/005_STOP_BY_INTEGRITY.eco">Verify this ECO</a>
+        </div>
+      </article>
+    </div>
+    <div class="callout" style="margin-top:1rem;">
+      <strong>Why this matters:</strong> most agent demos focus on the happy path. This sandbox makes the failure mode visible: the system does not just log what happened after the fact, it proves the state it was about to trust and stops when that state is no longer valid.
+    </div>
+    <div class="link-row">
+      <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/004_EXECUTE.eco">Start with scenario A</a>
+      <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/003_WAIT_FOR_OWNER.eco">Then inspect scenario B</a>
+      <a class="link-chip" href="../verifier/index.html?eco=../demo/evidence/005_STOP_BY_INTEGRITY.eco">Finish with scenario C</a>
+    </div>
+  </section>
+
+  <section id="local">
+    <p class="kicker">Run locally</p>
+    <h2>Reproduce the same sequence on your own machine.</h2>
+    <p class="section-lead">
+      If you want the real runnable path instead of the controlled browser walkthrough, use the repo scripts below. They correspond to the same story shown above.
+    </p>
+    <div class="code-card">
+      <strong>Install and reproduce</strong>
+      <pre>npm install -g verifiable-memory-mcp
+npm run demo:scenario:reset
+npm run demo:cycle
+npm run demo:tamper
+npm run demo:cycle-after-tamper
+npm run demo:export
+npm run demo:verifier</pre>
+    </div>
+    <div class="link-row">
+      <a class="link-chip" href="https://github.com/TemporalDynamics/verifiable-memory-mcp">Open the repo</a>
+      <a class="link-chip" href="../verifier/index.html">Open the standalone verifier</a>
+      <a class="link-chip" href="../index.html#ecosystem">See the ecosystem</a>
+    </div>
+  </section>
+
+  <footer>
+    This sandbox is controlled by design. It is here to demonstrate integrity-before-action clearly, repeatably, and independently verifiably.
+  </footer>
+</div>
+</body>
+</html>
