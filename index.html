@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>verifiable-memory-mcp — memory your AI agents can verify</title>
+<meta name="description" content="Local-first, append-only, tamper-evident memory for AI agents via MCP. The agent verifies integrity before acting, stops on tampering, and exports portable evidence.">
+<style>
+  :root {
+    --bg: #f5f4ec;
+    --card: #ffffff;
+    --ink: #1d1d1b;
+    --muted: #6b6b66;
+    --line: #e2e0d5;
+    --green: #136f63;
+    --green-soft: #e3f0ee;
+    --red: #b3261e;
+    --red-soft: #f9e7e6;
+    --idle: #9a988e;
+    --focus: #136f63;
+    --accent: #136f63;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14140f;
+      --card: #1e1e18;
+      --ink: #f0efe6;
+      --muted: #a3a299;
+      --line: #33332a;
+      --green: #4cc2a9;
+      --green-soft: #11332e;
+      --red: #ff7a70;
+      --red-soft: #3a1715;
+      --idle: #6e6d64;
+      --focus: #4cc2a9;
+      --accent: #4cc2a9;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 56rem; margin: 0 auto; padding: 0 1.25rem; }
+  a { color: var(--accent); }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 0; gap: 1rem; }
+  .brand { font-weight: 700; letter-spacing: -.01em; font-size: 1rem; }
+  .brand .dot { color: var(--accent); }
+  .nav-links { display: flex; gap: 1.1rem; font-size: .9rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; }
+  .nav-links a:hover { color: var(--ink); }
+  @media (max-width: 540px) { .nav-links { display: none; } }
+  .hero { padding: 2.5rem 0 1rem; }
+  .tag {
+    display: inline-block; font-size: .72rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: .25rem .7rem; margin-bottom: 1.1rem;
+  }
+  h1 {
+    font-size: clamp(2rem, 6vw, 3.1rem); line-height: 1.08;
+    letter-spacing: -.02em; margin: 0 0 1rem; max-width: 18ch;
+  }
+  .lead { font-size: 1.15rem; color: var(--muted); max-width: 52ch; margin: 0 0 1.6rem; }
+  .lead strong { color: var(--ink); font-weight: 600; }
+  .install {
+    display: flex; align-items: stretch; gap: 0;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; max-width: 26rem; margin-bottom: 1rem;
+  }
+  .install code { flex: 1; padding: .8rem 1rem; font-size: .9rem; }
+  .install button {
+    border: 0; border-left: 1px solid var(--line);
+    background: transparent; color: var(--muted);
+    padding: 0 1rem; cursor: pointer; font-size: .8rem; min-width: 4.5rem;
+  }
+  .install button:hover { color: var(--ink); }
+  .cta { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: .4rem; }
+  .btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    border-radius: 10px; padding: .7rem 1.2rem; font-weight: 600;
+    text-decoration: none; min-height: 44px; font-size: .95rem;
+  }
+  .btn.primary { background: var(--ink); color: var(--bg); }
+  .btn.ghost { border: 1px solid var(--line); color: var(--ink); }
+  .btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .meta { color: var(--muted); font-size: .82rem; margin-top: 1.1rem; }
+  section { padding: 2.6rem 0; border-top: 1px solid var(--line); }
+  .kicker { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
+  h2 { font-size: clamp(1.4rem, 3.5vw, 1.9rem); letter-spacing: -.01em; margin: 0 0 .8rem; }
+  .section-lead { color: var(--muted); max-width: 56ch; margin: 0 0 1.6rem; }
+  .flow { display: flex; flex-wrap: wrap; gap: .6rem; align-items: stretch; }
+  .step {
+    flex: 1; min-width: 9rem;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1rem;
+  }
+  .step .n { font-size: .75rem; color: var(--muted); font-weight: 700; letter-spacing: .1em; }
+  .step h3 { margin: .35rem 0 .3rem; font-size: 1rem; }
+  .step p { margin: 0; font-size: .88rem; color: var(--muted); }
+  .step.stop { border-color: var(--red); }
+  .step.stop h3 { color: var(--red); }
+  .states { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.2rem; }
+  .pill {
+    display: inline-flex; align-items: center; gap: .5rem;
+    border-radius: 999px; padding: .45rem .9rem; font-size: .85rem; font-weight: 600;
+    border: 1px solid var(--line);
+  }
+  .pill .ring { width: .65rem; height: .65rem; border-radius: 50%; }
+  .pill.valid { background: var(--green-soft); color: var(--green); border-color: transparent; }
+  .pill.valid .ring { background: var(--green); }
+  .pill.tampered { background: var(--red-soft); color: var(--red); border-color: transparent; }
+  .pill.tampered .ring { background: var(--red); }
+  .pill.unknown { color: var(--muted); }
+  .pill.unknown .ring { background: var(--idle); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .8rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.1rem;
+  }
+  .card h3 { margin: 0 0 .35rem; font-size: 1rem; }
+  .card p { margin: 0; font-size: .88rem; color: var(--muted); }
+  .card .soon { font-size: .7rem; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; margin-left: .4rem; }
+  .eco {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.2rem; font-size: .85rem;
+  }
+  .eco .row { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px dashed var(--line); }
+  .eco .row:last-child { border-bottom: 0; }
+  .eco .k { color: var(--muted); }
+  .eco .v { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; overflow-wrap: anywhere; }
+  .honest {
+    background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 1rem 1.2rem; margin-top: 1.4rem;
+    font-size: .9rem; color: var(--muted);
+  }
+  .honest strong { color: var(--ink); }
+  ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+  ul.checks li { display: flex; gap: .6rem; align-items: flex-start; font-size: .92rem; }
+  ul.checks li::before { content: "→"; color: var(--accent); font-weight: 700; }
+  .ecosystem-list { display: grid; gap: .9rem; }
+  .ecosystem-item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .ecosystem-item h3 { margin: 0 0 .35rem; font-size: 1rem; }
+  .ecosystem-item p { margin: 0; font-size: .9rem; color: var(--muted); }
+  .ecosystem-item .subhead { color: var(--ink); font-weight: 600; margin-bottom: .25rem; }
+  .video-cta { margin-top: .7rem; font-size: .92rem; }
+  footer { border-top: 1px solid var(--line); padding: 2rem 0 3rem; color: var(--muted); font-size: .82rem; }
+  footer .links { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-bottom: .9rem; }
+  footer a { color: var(--ink); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+  footer .fine { font-size: .76rem; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <div class="brand">verifiable-memory<span class="dot">·</span>mcp</div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#demo">Demo</a>
+      <a href="#eco">Evidence</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="https://github.com/TemporalDynamics/verifiable-memory-mcp">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <span class="tag">Open source · MIT · MCP server</span>
+    <h1>Give your AI agents memory they can verify.</h1>
+    <p class="lead">
+      Agents act on stored memory. But that memory can be edited, overwritten, or silently
+      corrupted. <strong>verifiable-memory-mcp</strong> gives an agent an integrity layer:
+      it checks memory before acting, <strong>stops if it was changed outside the approved flow</strong>,
+      and exports portable evidence of what happened.
+    </p>
+
+    <div class="install">
+      <code id="cmd">npm install verifiable-memory-mcp</code>
+      <button id="copy" aria-label="Copy install command">Copy</button>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" href="#demo">See the demo</a>
+      <a class="btn ghost" href="https://github.com/TemporalDynamics/verifiable-memory-mcp">View on GitHub</a>
+    </div>
+
+    <p class="meta">v0.1.2 · published on npm · 6 MCP tools · local-first, runs offline</p>
+  </header>
+
+  <section id="how">
+    <p class="kicker">How it works</p>
+    <h2>Verify → Stop → Export → Verify again</h2>
+    <p class="section-lead">
+      Every memory entry is append-only, timestamped, and cryptographically linked to the
+      one before it — a hash chain. Any later change to a past entry breaks the link and
+      becomes detectable.
+    </p>
+    <div class="flow">
+      <div class="step">
+        <div class="n">01</div>
+        <h3>Verify</h3>
+        <p>Before acting, the agent re-checks the integrity of its operational memory.</p>
+      </div>
+      <div class="step stop">
+        <div class="n">02</div>
+        <h3>Stop</h3>
+        <p>If memory was modified outside the approved flow, the agent halts instead of acting on it.</p>
+      </div>
+      <div class="step">
+        <div class="n">03</div>
+        <h3>Export ECO</h3>
+        <p>It writes a portable evidence receipt: what it relied on and what the integrity check found.</p>
+      </div>
+      <div class="step">
+        <div class="n">04</div>
+        <h3>Verify ECO</h3>
+        <p>Anyone can re-check that receipt independently — no backend, no trust in our screen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <p class="kicker">Demo</p>
+    <h2>Don't trust me — verify it yourself.</h2>
+    <p class="section-lead">
+      The verifier is a single static page. Load an exported bundle and it recomputes the whole
+      chain in your own browser with WebCrypto. Green means intact. Change one character and it
+      turns red. Try it on your own phone.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="./verifier/index.html">Open the verifier</a>
+      <a class="btn ghost" href="./demo/dashboard.html">View the agent dashboard</a>
+    </div>
+    <div class="states">
+      <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
+      <span class="pill tampered"><span class="ring"></span>ALTERED — chain broken</span>
+      <span class="pill unknown"><span class="ring"></span>UNKNOWN — no valid anchor</span>
+    </div>
+  </section>
+
+  <section id="eco">
+    <p class="kicker">Evidence</p>
+    <h2>A portable package, not a screenshot.</h2>
+    <p class="section-lead">
+      The main evidence artifact is an <span class="mono">.eco</span> package: the exported bundle,
+      an integrity anchor, agent decision metadata, and a human-readable report. The verifier checks it entirely in the browser.
+    </p>
+    <div class="eco">
+      <div class="row"><span class="k">bundleText</span><span class="v">verifiable-memory-bundle</span></div>
+      <div class="row"><span class="k">anchor.bundleHash</span><span class="v">sha256(...)</span></div>
+      <div class="row"><span class="k">manifest</span><span class="v">agent · cycle · decision · status</span></div>
+      <div class="row"><span class="k">report</span><span class="v">human-readable explanation</span></div>
+    </div>
+    <div class="honest">
+      <strong>Important:</strong> this proves integrity state and evidence portability. It does not claim to prove that an AI answer is universally correct.
+    </div>
+  </section>
+
+  <section id="ecosystem">
+    <p class="kicker">Ecosystem</p>
+    <h2>Part of a broader evidence ecosystem.</h2>
+    <p class="section-lead">
+      This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
+    </p>
+    <div class="ecosystem-list">
+      <div class="ecosystem-item">
+        <h3><a href="https://github.com/TemporalDynamics/AppCrew">AppCrew</a></h3>
+        <p class="subhead">Observable runtime for governed AI agents.</p>
+        <p>AppCrew coordinates agent execution, run state, approval gates, auditable timelines, and evidence hooks. It is the reusable runtime layer underneath domain applications.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>Talo</h3>
+        <p class="subhead">First vertical application built on AppCrew.</p>
+        <p>Talo shows the architecture in a live recruiting workflow: agents search, review, shortlist, and prepare outreach while verifying memory before action and stopping when integrity fails.</p>
+        <p class="video-cta"><strong>Watch Talo in action</strong><br>_Add video link here._</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>Portable ECO verification</h3>
+        <p class="subhead">Independent verification for ECO evidence artifacts.</p>
+        <p>The goal is portability: evidence should be re-checkable outside the original system, so verification can remain credible across workflows, devices, and operators.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3><a href="https://github.com/TemporalDynamics/ecosign-public">EcoSign</a></h3>
+        <p class="subhead">Evidence and verification workflows for digital documents.</p>
+        <p>EcoSign applies the same evidence logic to document integrity, export, and independent verification in document-centered workflows.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>CustodyArt</h3>
+        <p class="subhead">Provenance and custody for creative digital assets.</p>
+        <p>CustodyArt extends the same custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.</p>
+      </div>
+      <div class="ecosystem-item">
+        <h3>WITH</h3>
+        <p class="subhead">Higher semantic layer for adaptive memory systems.</p>
+        <p>WITH represents the broader memory and meaning layer of the ecosystem: long-term continuity, contextual recall, and adaptive assistance built on verifiable history.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="build">
+    <p class="kicker">Build &amp; deploy</p>
+    <h2>Start open source. Grow into evidence workflows.</h2>
+    <div class="grid">
+      <div class="card"><h3>Open-source core</h3><p>MIT, on npm, local-first. Install and run today.</p></div>
+      <div class="card"><h3>Private deployments</h3><p>Run it on your own infrastructure. <span class="soon">roadmap</span></p></div>
+      <div class="card"><h3>Evidence retention</h3><p>Keep and re-verify ECO artifacts over time. <span class="soon">roadmap</span></p></div>
+      <div class="card"><h3>Verification dashboards</h3><p>Audit-friendly views over agent memory. <span class="soon">roadmap</span></p></div>
+    </div>
+    <div class="honest">
+      <strong>Post-quantum-ready by design.</strong> The signing, anchoring and verification layer
+      is built to migrate toward post-quantum primitives without changing the evidence logic.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="https://github.com/TemporalDynamics/verifiable-memory-mcp">GitHub</a>
+      <a href="https://www.npmjs.com/package/verifiable-memory-mcp">npm</a>
+      <a href="./verifier/index.html">Verifier demo</a>
+      <a href="#how">How it works</a>
+    </div>
+    <p class="fine">
+      verifiable-memory-mcp · MIT · a public, deployable implementation of verifiable agent memory.<br>
+      Public behavior shown; protected mechanisms confidential. No endorsement implied.
+    </p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById('copy');
+    var cmd = document.getElementById('cmd');
+    if (!btn || !cmd) return;
+    btn.addEventListener('click', function () {
+      var text = cmd.textContent.trim();
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(done);
+      } else {
+        var r = document.createRange(); r.selectNode(cmd);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        try { document.execCommand('copy'); } catch (e) {}
+        s.removeAllRanges(); done();
+      }
+    });
+  })();
+</script>
+</body>
+</html>

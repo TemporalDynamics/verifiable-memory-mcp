@@ -372,6 +372,49 @@ If you work across languages, bilingual entries or bilingual tags improve recall
 | Local-first | Sometimes | Sometimes | **Yes** |
 | MCP-native | Varies | Varies | **Yes** |
 
+## Part of a broader evidence ecosystem
+
+This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
+
+### [AppCrew](https://github.com/TemporalDynamics/AppCrew)
+
+Observable runtime for governed AI agents.
+
+AppCrew coordinates agent execution, run state, approval gates, auditable timelines, and evidence hooks. It is the reusable runtime layer underneath domain applications.
+
+### Talo
+
+First vertical application built on AppCrew.
+
+Talo shows the architecture in a live recruiting workflow: agents search, review, shortlist, and prepare outreach while verifying memory before action and stopping when integrity fails.
+
+**Watch Talo in action**  
+_Add video link here._
+
+### Portable ECO verification
+
+Independent verification for ECO evidence artifacts.
+
+The goal is portability: evidence should be re-checkable outside the original system, so verification can remain credible across workflows, devices, and operators.
+
+### [EcoSign](https://github.com/TemporalDynamics/ecosign-public)
+
+Evidence and verification workflows for digital documents.
+
+EcoSign applies the same evidence logic to document integrity, export, and independent verification in document-centered workflows.
+
+### CustodyArt
+
+Provenance and custody for creative digital assets.
+
+CustodyArt extends the same custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.
+
+### WITH
+
+Higher semantic layer for adaptive memory systems.
+
+WITH represents the broader memory and meaning layer of the ecosystem: long-term continuity, contextual recall, and adaptive assistance built on verifiable history.
+
 ## Security / threat model
 
 - **Tamper detection**: `verify()` detects altered entry content. `chain()` detects broken links, removals, and reordering.
