@@ -38,7 +38,7 @@ This server gives an MCP-compatible client a local memory store with:
 - chain integrity verification,
 - chronological inspection,
 - portable export,
-- a browser-based bundle verifier.
+- a browser-based Evidence Record verifier.
 
 The result is simple:
 
@@ -85,7 +85,7 @@ If someone inserts, removes, or reorders entries, the chain breaks.
 | `verify` | Recompute hashes and confirm an entry has not been altered |
 | `chain` | Validate the full chain and detect breaks or reordering |
 | `timeline` | List memories chronologically, optionally filtered by tag |
-| `export` | Export a portable, verifiable JSON bundle |
+| `export` | Export a portable, verifiable Evidence Record |
 
 ## Evidence packages and verifier
 
@@ -93,8 +93,8 @@ The primary evidence artifact is a portable `.eco` package. The verifier link or
 
 Each `.eco` file is a JSON evidence envelope with:
 
-- `bundleText`: the exact exported `verifiable-memory-bundle`,
-- `anchor.bundleHash`: the SHA-256 hash of that bundle,
+- `bundleText`: the exact exported Evidence Record (`verifiable-memory-bundle` internally),
+- `anchor.bundleHash`: the Evidence Hash, the SHA-256 hash of that record,
 - `manifest`: agent, cycle, decision, memory status, failed entry, and timestamp,
 - `report`: a human-readable explanation of what happened.
 
@@ -120,7 +120,7 @@ This repository also includes a static verifier at:
 verifier/index.html
 ```
 
-It verifies `.eco` packages and exported `verifiable-memory-bundle` files entirely in the browser. It checks entry content hashes, entry hashes, chain links, and optionally a SHA-256 anchor for the exact exported file.
+It verifies `.eco` packages, `.ecox` replay packages, and exported Evidence Record files entirely in the browser. It checks entry content hashes, entry hashes, chain links, and optionally a SHA-256 anchor for the exact exported file. Strict mode lets a reviewer load the Evidence Record and ECO receipt as separate files and verify that they match.
 
 For a local demo:
 

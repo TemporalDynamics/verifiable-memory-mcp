@@ -551,6 +551,10 @@ npm run demo:verifier</pre>
     return JSON.stringify(run.eco, null, 2);
   }
 
+  function evidenceRecordJson(run) {
+    return run.eco.bundleText;
+  }
+
   function createEcox(run) {
     return {
       ecox_version: "ecox.v0.1",
@@ -630,6 +634,18 @@ npm run demo:verifier</pre>
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function downloadEvidenceRecord(run) {
+    const blob = new Blob([evidenceRecordJson(run)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sandbox-run-${run.number}-${run.decision}.evidence-record.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function downloadEcox(run) {
     const blob = new Blob([ecoxJson(run)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -666,13 +682,16 @@ npm run demo:verifier</pre>
         <div><strong>Memory:</strong> ${run.memory}</div>
         <div><strong>Content:</strong> ${run.contentRisk}</div>
         <div><strong>Status:</strong> ${run.status}</div>
+        <div><strong>Evidence Hash:</strong> <span class="mono">${run.eco.anchor.bundleHash}</span></div>
       </div>
       <div class="run-actions">
+        <button class="link-chip" type="button" data-action="download-record">Download Evidence Record</button>
         <button class="link-chip" type="button" data-action="download">Download ECO</button>
         <button class="link-chip" type="button" data-action="download-ecox">Download ECOX</button>
         <button class="link-chip" type="button" data-action="verify">Open in verifier</button>
       </div>
     `;
+    item.querySelector('[data-action="download-record"]').addEventListener("click", () => downloadEvidenceRecord(run));
     item.querySelector('[data-action="download"]').addEventListener("click", () => downloadEco(run));
     item.querySelector('[data-action="download-ecox"]').addEventListener("click", () => downloadEcox(run));
     item.querySelector('[data-action="verify"]').addEventListener("click", () => openInVerifier(run));

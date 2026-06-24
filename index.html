@@ -250,7 +250,7 @@
     <p class="kicker">Try it</p>
     <h2>Run the flow, then verify the evidence.</h2>
     <p class="section-lead">
-      The sandbox lets anyone create controlled runs, trigger a prompt-injection warning, apply memory tamper, export ECO artifacts, and verify them in the browser.
+      The sandbox lets anyone create controlled runs, trigger a prompt-injection warning, apply memory tamper, export an Evidence Record plus ECO artifacts, and verify them in the browser.
     </p>
     <div class="decision-grid">
       <div class="card primary-path">
@@ -259,7 +259,7 @@
         <p>Generate clean runs, trigger a prompt-injection warning, apply memory tamper, and verify the resulting ECO artifacts in the browser.</p>
         <ul class="action-list">
           <li>No account, backend, or live search required</li>
-          <li>Every run can produce a downloadable ECO and sanitized ECOX replay</li>
+          <li>Every run can produce an Evidence Record, ECO receipt, and sanitized ECOX replay</li>
           <li>The verifier checks the evidence independently</li>
         </ul>
       </div>
@@ -366,12 +366,12 @@ npm run demo:verifier</pre>
     <p class="kicker">Evidence</p>
     <h2>A portable package, not a screenshot.</h2>
     <p class="section-lead">
-      The main evidence artifact is an <span class="mono">.eco</span> package: the exported bundle,
+      The main evidence artifact is an <span class="mono">.eco</span> package: the Evidence Record,
       an integrity anchor, agent decision metadata, and a human-readable report. The verifier checks it entirely in the browser.
     </p>
     <div class="eco">
-      <div class="row"><span class="k">bundleText</span><span class="v">verifiable-memory-bundle</span></div>
-      <div class="row"><span class="k">anchor.bundleHash</span><span class="v">sha256(...)</span></div>
+      <div class="row"><span class="k">Evidence Record</span><span class="v">verifiable-memory-bundle</span></div>
+      <div class="row"><span class="k">Evidence Hash</span><span class="v">sha256(record)</span></div>
       <div class="row"><span class="k">manifest</span><span class="v">agent · cycle · decision · status</span></div>
       <div class="row"><span class="k">report</span><span class="v">human-readable explanation</span></div>
       <div class="row"><span class="k">ECOX</span><span class="v">permissioned replay package</span></div>

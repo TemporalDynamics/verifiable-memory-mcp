@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Verificador — verifiable-memory-bundle</title>
+<title>Verificador — Evidence Record</title>
 <style>
   :root {
     --bg: #f5f4ec;
@@ -109,6 +109,16 @@
     padding: .5rem .7rem; font: .85rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   .anchor input:focus { outline: 3px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+  .strict {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: .8rem;
+    display: grid;
+    gap: .65rem;
+  }
+  .strict-title { color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .strict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+  @media (max-width: 520px) { .strict-grid { grid-template-columns: 1fr; } }
   details {
     margin-top: 1rem; border: 1px solid var(--line); border-radius: 10px;
     padding: .55rem .8rem; font-size: .85rem;
@@ -148,7 +158,7 @@
 
   <div class="controls">
     <div class="drop" id="drop">
-      <span id="t_drop">Arrastra y suelta el bundle aquí</span><br>
+      <span id="t_drop">Arrastra y suelta un .eco, .ecox o Evidence Record aquí</span><br>
       <label class="pick"><span id="t_pick">Elegir archivo</span>
         <input type="file" id="file" accept=".json,.eco,.ecox,application/json">
       </label>
@@ -157,6 +167,18 @@
       <label for="anchor" id="t_anchor">Hash de ancla (sha256 del archivo, opcional)</label>
       <input type="text" id="anchor" inputmode="latin" autocomplete="off" spellcheck="false"
              placeholder="3f9c…(64 hex)">
+    </div>
+    <div class="strict">
+      <div class="strict-title" id="t_strict_title">Modo estricto</div>
+      <div class="strict-grid">
+        <label class="pick"><span id="t_pick_record">Cargar Evidence Record</span>
+          <input type="file" id="recordFile" accept=".json,application/json">
+        </label>
+        <label class="pick"><span id="t_pick_receipt">Cargar ECO receipt</span>
+          <input type="file" id="receiptFile" accept=".json,.eco,.ecox,application/json">
+        </label>
+      </div>
+      <div class="sub" id="strictStatus">Carga ambos archivos para comparar el registro contra el ECO.</div>
     </div>
   </div>
 
@@ -441,6 +463,7 @@
   globalThis.VMCPVerifier = {
     verifyInput,
     verifyBundle,
+    extractEvidencePackage,
     sha256HexOfBytes,
     sha256HexOfText,
     buildEntryCanonical,
@@ -455,9 +478,16 @@
   const I18N = {
     es: {
       title: "ECOsistema Verifier",
-      drop: "Arrastra y suelta un .eco o bundle aquí",
+      drop: "Arrastra y suelta un .eco, .ecox o Evidence Record aquí",
       pick: "Elegir archivo",
       anchor: "Hash de ancla (sha256 del archivo, opcional)",
+      strictTitle: "Modo estricto",
+      pickRecord: "Cargar Evidence Record",
+      pickReceipt: "Cargar ECO receipt",
+      strictWaiting: "Carga ambos archivos para comparar el registro contra el ECO.",
+      strictReady: "Evidence Record y ECO cargados. Verificando coincidencia…",
+      strictMatch: "Evidence Record coincide con el ECO.",
+      strictMismatch: "Evidence Record no coincide con el ECO.",
       details: "Detalles técnicos",
       idle: "Carga un .eco exportado para verificarlo.",
       busy: "Verificando…",
@@ -482,7 +512,7 @@
       anchorMismatch: "El archivo no coincide con el ancla externa.",
       anchorInvalid: "El ancla no es un sha256 válido (64 hex). Revísala.",
       parse: "El archivo no es JSON válido — no se pudo verificar.",
-      format: "El archivo no es un verifiable-memory-bundle — no se pudo verificar.",
+      format: "El archivo no es un Evidence Record verificable — no se pudo verificar.",
       structure: "Estructura de entrada inválida",
       content: "contentHash no coincide — contenido modificado",
       entry: "entryHash no coincide — metadatos modificados",
@@ -490,9 +520,9 @@
       anchorFail: "sha256 del archivo ≠ ancla — el archivo no es el publicado",
       chainAlsoOk: "cadena interna consistente, pero no es el archivo anclado",
       insecure: "Este verificador necesita un contexto seguro (https:// o localhost).",
-      fetchErr: "No se pudo cargar la URL del bundle.",
+      fetchErr: "No se pudo cargar la URL del Evidence Record.",
       dEntries: "Entradas", dChecked: "Verificadas", dExported: "Exportado",
-      dBundleHash: "sha256 del bundle", dFailCheck: "Check fallido",
+      dBundleHash: "sha256 del Evidence Record", dFailCheck: "Check fallido",
       dFailEntry: "Entry", dExpected: "Hash esperado", dActual: "Hash actual",
       dPackage: "Paquete", dDecision: "Decisión", dAnchor: "Ancla", dLimit: "Alcance",
       dOrigin: "App origen", dArtifactType: "Tipo artefacto", dLifecycle: "Ciclo vida",
@@ -504,9 +534,16 @@
     },
     en: {
       title: "ECOsystem Verifier",
-      drop: "Drag and drop a .eco or bundle here",
+      drop: "Drag and drop a .eco, .ecox, or Evidence Record here",
       pick: "Choose file",
       anchor: "Anchor hash (sha256 of the file, optional)",
+      strictTitle: "Strict mode",
+      pickRecord: "Load Evidence Record",
+      pickReceipt: "Load ECO receipt",
+      strictWaiting: "Load both files to compare the record against the ECO.",
+      strictReady: "Evidence Record and ECO loaded. Checking match…",
+      strictMatch: "Evidence Record matches the ECO.",
+      strictMismatch: "Evidence Record does not match the ECO.",
       details: "Technical details",
       idle: "Load an exported .eco to verify it.",
       busy: "Verifying…",
@@ -531,7 +568,7 @@
       anchorMismatch: "The file does not match the external anchor.",
       anchorInvalid: "The anchor is not a valid sha256 (64 hex). Check it.",
       parse: "The file is not valid JSON — nothing could be verified.",
-      format: "The file is not a verifiable-memory-bundle — nothing could be verified.",
+      format: "The file is not a verifiable Evidence Record — nothing could be verified.",
       structure: "Invalid entry structure",
       content: "contentHash mismatch — content was modified",
       entry: "entryHash mismatch — metadata was modified",
@@ -539,9 +576,9 @@
       anchorFail: "file sha256 ≠ anchor — this is not the published file",
       chainAlsoOk: "internal chain is consistent, but this is not the anchored file",
       insecure: "This verifier requires a secure context (https:// or localhost).",
-      fetchErr: "Could not load the bundle URL.",
+      fetchErr: "Could not load the Evidence Record URL.",
       dEntries: "Entries", dChecked: "Checked", dExported: "Exported",
-      dBundleHash: "bundle sha256", dFailCheck: "Failed check",
+      dBundleHash: "Evidence Record sha256", dFailCheck: "Failed check",
       dFailEntry: "Entry", dExpected: "Expected hash", dActual: "Actual hash",
       dPackage: "Package", dDecision: "Decision", dAnchor: "Anchor", dLimit: "Scope",
       dOrigin: "Origin app", dArtifactType: "Artifact type", dLifecycle: "Lifecycle",
@@ -555,12 +592,15 @@
 
   let lang = (navigator.language || "es").toLowerCase().startsWith("es") ? "es" : "en";
   let lastBytes = null;
+  let strictRecordBytes = null;
+  let strictReceiptBytes = null;
   let lastResult = null;
 
   const $ = (id) => document.getElementById(id);
   const circle = $("circle"), verdict = $("verdict"), statusline = $("statusline");
   const details = $("details"), detailList = $("detailList");
   const anchorInput = $("anchor"), fileInput = $("file"), drop = $("drop");
+  const recordFileInput = $("recordFile"), receiptFileInput = $("receiptFile"), strictStatus = $("strictStatus");
 
   function t(key) { return I18N[lang][key]; }
 
@@ -570,6 +610,10 @@
     $("t_drop").textContent = t("drop");
     $("t_pick").textContent = t("pick");
     $("t_anchor").textContent = t("anchor");
+    $("t_strict_title").textContent = t("strictTitle");
+    $("t_pick_record").textContent = t("pickRecord");
+    $("t_pick_receipt").textContent = t("pickReceipt");
+    if (!strictRecordBytes || !strictReceiptBytes) strictStatus.textContent = t("strictWaiting");
     $("t_details").textContent = t("details");
     $("t_limit").textContent = t("limit");
     $("langToggle").textContent = t("toggle");
@@ -722,6 +766,62 @@
     }
   }
 
+  async function runStrict() {
+    if (!strictRecordBytes || !strictReceiptBytes) {
+      strictStatus.textContent = t("strictWaiting");
+      return;
+    }
+    renderBusy();
+    strictStatus.textContent = t("strictReady");
+    try {
+      const receipt = globalThis.VMCPVerifier.extractEvidencePackage(strictReceiptBytes);
+      if (!receipt) {
+        renderIdle(t("format"));
+        return;
+      }
+      const recordHash = await globalThis.VMCPVerifier.sha256HexOfBytes(strictRecordBytes);
+      const expectedHash = receipt.anchor?.bundleHash;
+      if (recordHash !== expectedHash) {
+        const result = await globalThis.VMCPVerifier.verifyBundle(strictRecordBytes, expectedHash);
+        result.verdict = "red";
+        result.anchor = "mismatch";
+        result.failure = { check: "anchor", entryId: null, index: null };
+        result.package = {
+          format: receipt.format,
+          eco_version: receipt.eco_version ?? null,
+          version: receipt.version ?? null,
+          origin_app: receipt.origin_app ?? null,
+          artifact_id: receipt.artifact_id ?? null,
+          artifact_type: receipt.artifact_type ?? null,
+          lifecycle: receipt.lifecycle ?? null,
+          manifest: receipt.manifest ?? null,
+          verification: receipt.verification ?? null,
+          wrapper: receipt.wrapper ?? null
+        };
+        strictStatus.textContent = t("strictMismatch");
+        render(result);
+        return;
+      }
+      const result = await globalThis.VMCPVerifier.verifyBundle(strictRecordBytes, expectedHash);
+      result.package = {
+        format: receipt.format,
+        eco_version: receipt.eco_version ?? null,
+        version: receipt.version ?? null,
+        origin_app: receipt.origin_app ?? null,
+        artifact_id: receipt.artifact_id ?? null,
+        artifact_type: receipt.artifact_type ?? null,
+        lifecycle: receipt.lifecycle ?? null,
+        manifest: receipt.manifest ?? null,
+        verification: receipt.verification ?? null,
+        wrapper: receipt.wrapper ?? null
+      };
+      strictStatus.textContent = result.verdict === "green" ? t("strictMatch") : t("strictMismatch");
+      render(result);
+    } catch (err) {
+      renderIdle(String(err && err.message ? err.message : err));
+    }
+  }
+
   async function loadFile(file) {
     if (!file) return;
     lastBytes = new Uint8Array(await file.arrayBuffer());
@@ -729,6 +829,16 @@
   }
 
   fileInput.addEventListener("change", () => loadFile(fileInput.files[0]));
+  recordFileInput.addEventListener("change", async () => {
+    if (!recordFileInput.files[0]) return;
+    strictRecordBytes = new Uint8Array(await recordFileInput.files[0].arrayBuffer());
+    runStrict();
+  });
+  receiptFileInput.addEventListener("change", async () => {
+    if (!receiptFileInput.files[0]) return;
+    strictReceiptBytes = new Uint8Array(await receiptFileInput.files[0].arrayBuffer());
+    runStrict();
+  });
 
   ["dragover", "dragenter"].forEach((ev) =>
     document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
