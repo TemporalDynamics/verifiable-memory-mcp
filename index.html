@@ -247,31 +247,30 @@
   </header>
 
   <section id="paths">
-    <p class="kicker">Choose your path</p>
-    <h2>Two ways to evaluate the same integrity story.</h2>
+    <p class="kicker">Try it</p>
+    <h2>Run the flow, then verify the evidence.</h2>
     <p class="section-lead">
-      Non-technical reviewers should be able to understand the stop condition in the browser.
-      Technical reviewers should be able to reproduce the same flow locally without trusting this page.
+      The sandbox lets anyone create controlled runs, trigger a prompt-injection warning, apply memory tamper, export ECO artifacts, and verify them in the browser.
     </p>
     <div class="decision-grid">
       <div class="card primary-path">
-        <span class="eyebrow">For judges and operators</span>
-        <h3>Browser-first sandbox</h3>
-        <p>Follow a guided, repeatable path: run the agent, inspect the checkpoint, trigger an integrity failure, export the ECO, and verify it yourself.</p>
+        <span class="eyebrow">Start here</span>
+        <h3>Run the interactive sandbox</h3>
+        <p>Generate clean runs, trigger a prompt-injection warning, apply memory tamper, and verify the resulting ECO artifacts in the browser.</p>
         <ul class="action-list">
-          <li>No setup required to understand the pattern</li>
-          <li>Shows integrity-before-action, not open-ended search quality</li>
-          <li>Ends in an independent browser verification step</li>
+          <li>No account, backend, or live search required</li>
+          <li>Every run can produce a downloadable ECO</li>
+          <li>The verifier checks the evidence independently</li>
         </ul>
       </div>
       <div class="card">
-        <span class="eyebrow">For developers</span>
+        <span class="eyebrow">Go deeper</span>
         <h3>Install and reproduce locally</h3>
-        <p>Run the exact sequence on your own machine: reset the scenario, execute the cycle, tamper with memory, export the ECO, and verify the artifact independently.</p>
+        <p>Run the same integrity flow from the repository scripts, then export and verify the generated evidence on your own machine.</p>
         <ul class="action-list">
-          <li>Concrete scripts, not pseudo-code</li>
-          <li>Portable verifier remains usable outside the demo</li>
-          <li>Local-first flow with no backend trust assumptions</li>
+          <li>Uses concrete repo scripts</li>
+          <li>Keeps the verifier as the independent endpoint</li>
+          <li>Runs local-first with no backend trust requirement</li>
         </ul>
       </div>
     </div>
@@ -321,7 +320,7 @@
       </div>
     </div>
     <div class="cta">
-      <a class="btn primary" href="./sandbox/index.html">Open the sandbox walkthrough</a>
+      <a class="btn primary" href="./sandbox/index.html">Open the interactive sandbox</a>
       <a class="btn ghost" href="./verifier/index.html">Open the verifier</a>
     </div>
   </section>
@@ -330,7 +329,7 @@
     <p class="kicker">Local install</p>
     <h2>Reproduce the same flow on your own machine.</h2>
     <p class="section-lead">
-      The browser-first path is the easiest way to understand the idea. The local path is there so developers and technical reviewers can run the same sequence without trusting the landing.
+      The browser sandbox is the fastest way to understand the flow. The local path lets anyone reproduce the same sequence from the repository scripts without trusting the landing page.
     </p>
     <div class="code-stack">
       <div class="code-card">
@@ -386,7 +385,7 @@ npm run demo:verifier</pre>
     </div>
     <div class="cta">
       <a class="btn primary" href="./verifier/index.html">Verify an ECO in the browser</a>
-      <a class="btn ghost" href="./sandbox/index.html">Open the sandbox walkthrough</a>
+      <a class="btn ghost" href="./sandbox/index.html">Open the interactive sandbox</a>
     </div>
   </section>
 
