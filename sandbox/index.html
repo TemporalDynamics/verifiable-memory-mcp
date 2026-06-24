@@ -275,7 +275,7 @@
     <p class="kicker">Interactive sandbox</p>
     <h2>Run controlled agent cycles.</h2>
     <p class="section-lead">
-      This console behaves like a small Talo-style agent room without live agents or live search. It generates fresh ECO artifacts in your browser for every run.
+      This console behaves like a small Talo-style agent room without live agents or live search. It generates fresh ECO artifacts in your browser for every run, with an optional ECOX replay package for permissioned review.
     </p>
     <div class="console-layout">
       <div class="console-panel">
@@ -307,6 +307,9 @@
     </div>
     <div class="console-panel" style="margin-top:1rem;">
       <h3>Run history</h3>
+      <p class="section-lead" style="margin-top:-.35rem;">
+        ECO is the shareable receipt. ECOX is an extended replay package for controlled review; this sandbox version includes only sanitized run state and the generated ECO, which the verifier can still check.
+      </p>
       <div id="runHistory" class="run-history"></div>
     </div>
   </section>
@@ -548,12 +551,91 @@ npm run demo:verifier</pre>
     return JSON.stringify(run.eco, null, 2);
   }
 
+  function createEcox(run) {
+    return {
+      ecox_version: "ecox.v0.1",
+      format: "ecox.evidence-package",
+      origin_app: "verifiable-memory-mcp-sandbox",
+      artifact_id: `${run.eco.artifact_id}_replay`,
+      artifact_type: "forensic_replay",
+      lifecycle: run.eco.lifecycle,
+      sensitivity: "permissioned_review",
+      generated_at: nowIso(),
+      redaction_policy: {
+        raw_browser_data: "omitted",
+        local_storage: "omitted",
+        network_identifiers: "omitted",
+        implementation_internals: "omitted",
+        user_supplied_sensitive_data_detection: "not_performed"
+      },
+      included_evidence: {
+        eco: run.eco,
+        eco_anchor: run.eco.anchor,
+        verifier_hint: {
+          verifier: "../verifier/index.html",
+          expected_integrity: run.eco.verification.integrity,
+          expected_lifecycle: run.eco.verification.lifecycle
+        }
+      },
+      replay: {
+        summary: run.report,
+        visible_state: {
+          run_number: run.number,
+          created_at: run.createdAt,
+          decision: run.decision,
+          status: run.status,
+          memory: run.memory,
+          content_risk: run.contentRisk
+        },
+        visible_timeline: [
+          {
+            phase: "intent_loaded",
+            detail: "Controlled sandbox intent accepted by the browser-only demo."
+          },
+          {
+            phase: "memory_check",
+            detail: run.memory === "TAMPERED"
+              ? "Memory verification failed before action."
+              : "Memory verification passed before action."
+          },
+          {
+            phase: "content_risk",
+            detail: run.contentRisk === "SUSPICIOUS"
+              ? "Prompt-injection-like content was recorded as a warning."
+              : "No prompt-injection warning was active for this run."
+          },
+          {
+            phase: "decision",
+            detail: run.decision
+          }
+        ]
+      },
+      scope_note: "ECOX is an extended replay package. This public sandbox version is intentionally sanitized and does not include credentials, private modules, device data, or implementation internals."
+    };
+  }
+
+  function ecoxJson(run) {
+    return JSON.stringify(createEcox(run), null, 2);
+  }
+
   function downloadEco(run) {
     const blob = new Blob([ecoJson(run)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `sandbox-run-${run.number}-${run.decision}.eco`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadEcox(run) {
+    const blob = new Blob([ecoxJson(run)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sandbox-run-${run.number}-${run.decision}.ecox`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -587,10 +669,12 @@ npm run demo:verifier</pre>
       </div>
       <div class="run-actions">
         <button class="link-chip" type="button" data-action="download">Download ECO</button>
+        <button class="link-chip" type="button" data-action="download-ecox">Download ECOX</button>
         <button class="link-chip" type="button" data-action="verify">Open in verifier</button>
       </div>
     `;
     item.querySelector('[data-action="download"]').addEventListener("click", () => downloadEco(run));
+    item.querySelector('[data-action="download-ecox"]').addEventListener("click", () => downloadEcox(run));
     item.querySelector('[data-action="verify"]').addEventListener("click", () => openInVerifier(run));
     $("runHistory").prepend(item);
   }
@@ -675,7 +759,7 @@ npm run demo:verifier</pre>
   $("applyTamper").addEventListener("click", applyTamper);
   $("resetSandbox").addEventListener("click", resetSandbox);
 
-  window.VMCPSandbox = { state, sampleResults, createRun, applyTamper, resetSandbox };
+  window.VMCPSandbox = { state, sampleResults, createRun, applyTamper, resetSandbox, createEcox };
   resetSandbox();
 })();
 </script>

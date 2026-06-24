@@ -150,7 +150,7 @@
     <div class="drop" id="drop">
       <span id="t_drop">Arrastra y suelta el bundle aquí</span><br>
       <label class="pick"><span id="t_pick">Elegir archivo</span>
-        <input type="file" id="file" accept=".json,application/json">
+        <input type="file" id="file" accept=".json,.eco,.ecox,application/json">
       </label>
     </div>
     <div class="anchor">
@@ -246,6 +246,33 @@
       typeof parsed.anchor.bundleHash === "string"
     ) {
       return parsed;
+    }
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.format === "ecox.evidence-package" &&
+      parsed.included_evidence &&
+      parsed.included_evidence.eco &&
+      typeof parsed.included_evidence.eco === "object"
+    ) {
+      const eco = parsed.included_evidence.eco;
+      if (
+        (eco.format === "vmcp-evidence-package" || eco.format === "eco.evidence-artifact") &&
+        typeof eco.bundleText === "string" &&
+        eco.anchor &&
+        typeof eco.anchor.bundleHash === "string"
+      ) {
+        return {
+          ...eco,
+          wrapper: {
+            format: parsed.format,
+            ecox_version: parsed.ecox_version ?? null,
+            artifact_id: parsed.artifact_id ?? null,
+            sensitivity: parsed.sensitivity ?? null,
+            scope_note: parsed.scope_note ?? null
+          }
+        };
+      }
     }
     return null;
   }
@@ -406,6 +433,7 @@
       ledger_summary: eco.ledger_summary ?? null,
       assets_index: eco.assets_index ?? null,
       verification: eco.verification ?? null,
+      wrapper: eco.wrapper ?? null,
     };
     return result;
   }

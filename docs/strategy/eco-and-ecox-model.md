@@ -8,4 +8,6 @@ ECOX is the extended forensic evidence package. It is the forensic replay.
 
 ECOX may include deeper traces, raw sources, intermediate versions, edit process, discarded material, and other sensitive context. ECOX is permissioned by default and belongs in advanced or enterprise contexts.
 
+The public sandbox can generate a sanitized `.ecox` replay package for each browser run. That sandbox ECOX includes the generated ECO, visible run state, verifier hints, and a redaction policy; it intentionally omits browser/device data, credentials, private modules, and implementation internals.
+
 Public tools verify integrity. Permissioned products interpret deeper evidence.

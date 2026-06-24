@@ -259,7 +259,7 @@
         <p>Generate clean runs, trigger a prompt-injection warning, apply memory tamper, and verify the resulting ECO artifacts in the browser.</p>
         <ul class="action-list">
           <li>No account, backend, or live search required</li>
-          <li>Every run can produce a downloadable ECO</li>
+          <li>Every run can produce a downloadable ECO and sanitized ECOX replay</li>
           <li>The verifier checks the evidence independently</li>
         </ul>
       </div>
@@ -374,9 +374,10 @@ npm run demo:verifier</pre>
       <div class="row"><span class="k">anchor.bundleHash</span><span class="v">sha256(...)</span></div>
       <div class="row"><span class="k">manifest</span><span class="v">agent · cycle · decision · status</span></div>
       <div class="row"><span class="k">report</span><span class="v">human-readable explanation</span></div>
+      <div class="row"><span class="k">ECOX</span><span class="v">permissioned replay package</span></div>
     </div>
     <div class="honest">
-      <strong>Important:</strong> this proves integrity state and evidence portability. It does not claim to prove that an AI answer is universally correct.
+      <strong>Important:</strong> ECO is the shareable receipt; ECOX is the extended replay for controlled review. This proves integrity state and evidence portability, not that an AI answer is universally correct.
     </div>
     <div class="states">
       <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
