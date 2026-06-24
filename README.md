@@ -380,17 +380,23 @@ These are not separate product claims. They are different places where the same 
 
 ## Applied workflow proof
 
-Beyond the sandbox, this pattern is being validated inside a full recruiting application workflow: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A video walkthrough will be published here once recorded.
+Beyond the sandbox, this pattern is being validated inside a full recruiting application workflow: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A demo video will be published here once recorded.
 
-The walkthrough will show external candidate documents, owner approval, evidence generation, and stop-by-integrity behavior in a real operational flow. Until it's published, the sandbox above remains the reproducible way to evaluate the pattern directly.
+The recording will show external candidate documents, owner approval, evidence generation, and stop-by-integrity behavior in a real operational flow. Until it's published, the sandbox above remains the reproducible way to evaluate the pattern directly.
+
+### [AppCrew](https://github.com/TemporalDynamics/AppCrew)
+
+Observable runtime for governed AI agents.
+
+AppCrew is the reusable runtime layer around agent execution: run state, timelines, approval gates, and evidence hooks. VMMCP is the integrity layer that can be attached when memory must be verified before action.
 
 ### Applied recruiting workflow
 
 Vertical validation for recruiting agents.
 
-The same control pattern is being validated inside a real recruiting workflow: external candidate documents, approval gates, evidence trails, and integrity failure handling. A video walkthrough will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
+The same control pattern is being validated inside a real recruiting workflow: external candidate documents, approval gates, evidence trails, and integrity failure handling. A demo video will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
 
-### Portable ECO verification
+### [Portable ECO verification](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)
 
 Independent verification for ECO evidence artifacts.
 
@@ -412,7 +418,7 @@ CustodyArt applies custody and evidence discipline to artworks and digital cultu
 
 Deterministic semantic memory layer.
 
-WITH/WIT applies the same evidence-first principle to human memory: the system can retrieve an answer and show the records that support it. It is not an LLM system.
+WITH/WIT applies the same evidence-first principle to human memory: the system can retrieve an answer and show the records that support it. The core remains private; a related public surface is [with-typing](https://github.com/TemporalDynamics/with-typing).
 
 ## Security / threat model
 
