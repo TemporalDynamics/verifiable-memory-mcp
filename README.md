@@ -376,20 +376,17 @@ If you work across languages, bilingual entries or bilingual tags improve recall
 
 This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
 
-### [AppCrew](https://github.com/TemporalDynamics/AppCrew)
+## Applied workflow proof
 
-Observable runtime for governed AI agents.
+Beyond the sandbox, this pattern is running inside a full recruiting application: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A video walkthrough will be published here once recorded.
 
-AppCrew coordinates agent execution, run state, approval gates, auditable timelines, and evidence hooks. It is the reusable runtime layer underneath domain applications.
+The walkthrough will show external candidate documents, owner approval, evidence generation, and stop-by-integrity behavior in a real operational flow. Until it's published, the sandbox above remains the reproducible way to evaluate the pattern directly.
 
-### Talo
+### Applied recruiting workflow
 
-First vertical application built on AppCrew.
+Vertical validation for recruiting agents.
 
-Talo shows the architecture in a live recruiting workflow: agents search, review, shortlist, and prepare outreach while verifying memory before action and stopping when integrity fails.
-
-**Watch Talo in action**  
-_Add video link here._
+The same control pattern is being validated inside a real recruiting workflow: external candidate documents, approval gates, evidence trails, and integrity failure handling. A video walkthrough will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
 
 ### Portable ECO verification
 
