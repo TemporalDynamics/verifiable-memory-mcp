@@ -376,9 +376,11 @@ If you work across languages, bilingual entries or bilingual tags improve recall
 
 This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
 
+These are not separate product claims. They are different places where the same underlying need shows up: a claim about information is only trustworthy if it can be checked against the record it came from, not just taken on faith. VMMCP and Talo apply this where agents act on memory. EcoSign and CustodyArt apply it where documents and creative assets need provenance. WITH/WIT applies it to personal memory — answers link back to the records that support them.
+
 ## Applied workflow proof
 
-Beyond the sandbox, this pattern is running inside a full recruiting application: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A video walkthrough will be published here once recorded.
+Beyond the sandbox, this pattern is being validated inside a full recruiting application workflow: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A video walkthrough will be published here once recorded.
 
 The walkthrough will show external candidate documents, owner approval, evidence generation, and stop-by-integrity behavior in a real operational flow. Until it's published, the sandbox above remains the reproducible way to evaluate the pattern directly.
 
@@ -398,19 +400,19 @@ The goal is portability: evidence should be re-checkable outside the original sy
 
 Evidence and verification workflows for digital documents.
 
-EcoSign applies the same evidence logic to document integrity, export, and independent verification in document-centered workflows.
+EcoSign applies an evidence-first approach to document integrity, export, and independent verification in document-centered workflows.
 
 ### CustodyArt
 
 Provenance and custody for creative digital assets.
 
-CustodyArt extends the same custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.
+CustodyArt applies custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.
 
-### WITH
+### WITH / WIT
 
-Higher semantic layer for adaptive memory systems.
+Deterministic semantic memory layer.
 
-WITH represents the broader memory and meaning layer of the ecosystem: long-term continuity, contextual recall, and adaptive assistance built on verifiable history.
+WITH/WIT applies the same evidence-first principle to human memory: the system can retrieve an answer and show the records that support it. It is not an LLM system.
 
 ## Security / threat model
 
