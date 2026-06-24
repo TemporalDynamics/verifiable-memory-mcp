@@ -675,4 +675,3 @@ Type consistency:
 
 - Run fields are consistently named `number`, `intent`, `createdAt`, `memory`, `contentRisk`, `decision`, `status`, `summary`, `report`, and `eco`.
 - ECO fields are consistently named `format`, `origin_app`, `artifact_type`, `lifecycle`, `manifest`, `verification`, `anchor`, and `bundleText`.
-
