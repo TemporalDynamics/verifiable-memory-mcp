@@ -2,6 +2,8 @@
 
 **Local-first, append-only, tamper-evident memory for AI agents.**
 
+**[→ Landing page](https://temporaldynamics.github.io/verifiable-memory-mcp/) · [→ Interactive sandbox](https://temporaldynamics.github.io/verifiable-memory-mcp/sandbox/) · [→ Evidence verifier](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)**
+
 `verifiable-memory-mcp` is an MCP server for storing agent memory as a verifiable hash chain.
 
 Every entry is immutable, timestamped, cryptographically linked to the previous one, and exportable as portable evidence.
@@ -390,11 +392,11 @@ Observable runtime for governed AI agents.
 
 AppCrew is the reusable runtime layer around agent execution: run state, timelines, approval gates, and evidence hooks. VMMCP is the integrity layer that can be attached when memory must be verified before action.
 
-### Applied recruiting workflow
+### [Talo](https://github.com/TemporalDynamics/Talo)
 
 Vertical validation for recruiting agents.
 
-The same control pattern is being validated inside a real recruiting workflow: external candidate documents, approval gates, evidence trails, and integrity failure handling. A demo video will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
+Talo is a multi-agent recruiting platform that applies the same integrity-before-action pattern to talent operations: agents verify their memory before sourcing, pause for owner approval, and stop if the chain is broken. The same hash chain format runs in both systems — cross-validated at the byte level. A demo video will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
 
 ### [Portable ECO verification](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)
 
