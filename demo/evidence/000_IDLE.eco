@@ -1,0 +1,112 @@
+{
+  "eco_version": "eco.v0.2",
+  "format": "eco.evidence-artifact",
+  "version": "0.1",
+  "origin_app": "verifiable-memory-mcp",
+  "artifact_id": "000_IDLE_199d4c415500",
+  "artifact_type": "run_snapshot",
+  "lifecycle": "SNAPSHOT",
+  "manifest": {
+    "agent": "ai-infrastructure-research-agent",
+    "task": "Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.",
+    "cycle": 0,
+    "decision": "IDLE",
+    "memory": "VERIFIED",
+    "status": "VALID",
+    "failedEntry": null,
+    "createdAt": "2026-06-29T08:20:06.978Z",
+    "label": "setup_READY"
+  },
+  "authority_summary": {
+    "owner": "demo-owner",
+    "flowCreator": "demo-owner",
+    "policyVersion": 1,
+    "ownerReview": null
+  },
+  "policy_summary": {
+    "policyStatus": "TRUSTED",
+    "policyVersion": 1,
+    "sensitiveActions": [
+      "approve_wire_transfer",
+      "export_customer_records",
+      "delete_audit_log"
+    ]
+  },
+  "ledger_summary": {
+    "events": [
+      {
+        "cycle": 0,
+        "at": "2026-06-29T08:20:06.952Z",
+        "type": "setup_complete",
+        "label": "Setup complete: agent charter created, policy v1 active, memory verified"
+      }
+    ],
+    "cycles": [],
+    "research": null
+  },
+  "assets_index": {
+    "entries": [],
+    "note": "This demo artifact stores memory and run evidence inline. External assets can be indexed here by future workflows."
+  },
+  "verification": {
+    "integrity": "VALID",
+    "lifecycle": "SNAPSHOT",
+    "failedEntry": null,
+    "bundleHash": "199d4c415500a37d02aa5d0a9fc827402144d1901058ac8676e5696df740cd17"
+  },
+  "anchor": {
+    "algorithm": "sha256",
+    "bundleHash": "199d4c415500a37d02aa5d0a9fc827402144d1901058ac8676e5696df740cd17"
+  },
+  "bundle": {
+    "format": "verifiable-memory-bundle",
+    "version": "0.1",
+    "exportedAt": "2026-06-29T08:20:06.978Z",
+    "entries": [
+      {
+        "id": "mem_89870a65",
+        "createdAt": "2026-06-29T08:20:06.963Z",
+        "content": "{\"type\":\"agent_charter\",\"agent\":\"ai-infrastructure-research-agent\",\"createdBy\":\"owner\",\"createdAt\":\"2026-06-29T08:20:06.952Z\",\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"doctrine\":[\"I always verify memory before acting.\",\"I only trust append-only updates.\",\"I separate external content from owner instructions.\",\"I write evidence for every action.\",\"If integrity fails, I stop.\"],\"status\":\"trusted_genesis_entry\"}",
+        "tags": [
+          "demo",
+          "identity",
+          "charter",
+          "genesis"
+        ],
+        "contentHash": "af547ad150fb11b50d5b5527bcde032f537c5b4b649c85d0640c93c314a5ab08",
+        "prevHash": null,
+        "entryHash": "539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6"
+      },
+      {
+        "id": "mem_a2854af3",
+        "createdAt": "2026-06-29T08:20:06.977Z",
+        "content": "{\"type\":\"agent_created\",\"agent\":\"ai-infrastructure-research-agent\",\"createdBy\":\"owner\",\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"status\":\"active\"}",
+        "tags": [
+          "demo",
+          "identity"
+        ],
+        "contentHash": "bc379d18568f10154488bc4df7202f8fd426275512fe4fdb9d64366a90475179",
+        "prevHash": "539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6",
+        "entryHash": "a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6"
+      },
+      {
+        "id": "mem_d43f4fb9",
+        "createdAt": "2026-06-29T08:20:06.977Z",
+        "content": "{\"type\":\"policy_created\",\"agent\":\"ai-infrastructure-research-agent\",\"actor\":\"owner\",\"ownerSignature\":true,\"policyVersion\":1,\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"allowedSources\":[{\"name\":\"IBM Quantum\",\"url\":\"https://example.local/ibm-quantum\",\"topic\":\"quantum-safe infrastructure\",\"addedInVersion\":1,\"finding\":\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\"},{\"name\":\"Anthropic\",\"url\":\"https://example.local/anthropic-safety\",\"topic\":\"agent safety and oversight\",\"addedInVersion\":1,\"finding\":\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\"},{\"name\":\"arXiv AI Agents\",\"url\":\"https://example.local/arxiv-agents\",\"topic\":\"AI agents and verifiable memory\",\"addedInVersion\":1,\"finding\":\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\"}],\"deniedActions\":[\"approve_wire_transfer\",\"export_customer_records\",\"delete_audit_log\"],\"status\":\"active\"}",
+        "tags": [
+          "demo",
+          "policy"
+        ],
+        "contentHash": "c09b6f8887d0a249f6c7189275134ea8fe35ba8cb30ae48b01cbed02246633c2",
+        "prevHash": "a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6",
+        "entryHash": "1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56"
+      }
+    ]
+  },
+  "bundleText": "{\n  \"format\": \"verifiable-memory-bundle\",\n  \"version\": \"0.1\",\n  \"exportedAt\": \"2026-06-29T08:20:06.978Z\",\n  \"entries\": [\n    {\n      \"id\": \"mem_89870a65\",\n      \"createdAt\": \"2026-06-29T08:20:06.963Z\",\n      \"content\": \"{\\\"type\\\":\\\"agent_charter\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"createdBy\\\":\\\"owner\\\",\\\"createdAt\\\":\\\"2026-06-29T08:20:06.952Z\\\",\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"doctrine\\\":[\\\"I always verify memory before acting.\\\",\\\"I only trust append-only updates.\\\",\\\"I separate external content from owner instructions.\\\",\\\"I write evidence for every action.\\\",\\\"If integrity fails, I stop.\\\"],\\\"status\\\":\\\"trusted_genesis_entry\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"identity\",\n        \"charter\",\n        \"genesis\"\n      ],\n      \"contentHash\": \"af547ad150fb11b50d5b5527bcde032f537c5b4b649c85d0640c93c314a5ab08\",\n      \"prevHash\": null,\n      \"entryHash\": \"539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6\"\n    },\n    {\n      \"id\": \"mem_a2854af3\",\n      \"createdAt\": \"2026-06-29T08:20:06.977Z\",\n      \"content\": \"{\\\"type\\\":\\\"agent_created\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"createdBy\\\":\\\"owner\\\",\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"status\\\":\\\"active\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"identity\"\n      ],\n      \"contentHash\": \"bc379d18568f10154488bc4df7202f8fd426275512fe4fdb9d64366a90475179\",\n      \"prevHash\": \"539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6\",\n      \"entryHash\": \"a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6\"\n    },\n    {\n      \"id\": \"mem_d43f4fb9\",\n      \"createdAt\": \"2026-06-29T08:20:06.977Z\",\n      \"content\": \"{\\\"type\\\":\\\"policy_created\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"actor\\\":\\\"owner\\\",\\\"ownerSignature\\\":true,\\\"policyVersion\\\":1,\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"allowedSources\\\":[{\\\"name\\\":\\\"IBM Quantum\\\",\\\"url\\\":\\\"https://example.local/ibm-quantum\\\",\\\"topic\\\":\\\"quantum-safe infrastructure\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\\\"},{\\\"name\\\":\\\"Anthropic\\\",\\\"url\\\":\\\"https://example.local/anthropic-safety\\\",\\\"topic\\\":\\\"agent safety and oversight\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\\\"},{\\\"name\\\":\\\"arXiv AI Agents\\\",\\\"url\\\":\\\"https://example.local/arxiv-agents\\\",\\\"topic\\\":\\\"AI agents and verifiable memory\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\\\"}],\\\"deniedActions\\\":[\\\"approve_wire_transfer\\\",\\\"export_customer_records\\\",\\\"delete_audit_log\\\"],\\\"status\\\":\\\"active\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"policy\"\n      ],\n      \"contentHash\": \"c09b6f8887d0a249f6c7189275134ea8fe35ba8cb30ae48b01cbed02246633c2\",\n      \"prevHash\": \"a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6\",\n      \"entryHash\": \"1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56\"\n    }\n  ]\n}",
+  "report": "# Evidence report\n\nAgent: ai-infrastructure-research-agent\nCycle: 0\nDecision: IDLE\nMemory: VERIFIED\nStatus: VALID\nCreated at: 2026-06-29T08:20:06.978Z\n\n## Summary\nsetup complete — policy v1 active; run the first agent cycle to begin\n",
+  "packageHash": {
+    "algorithm": "sha256",
+    "value": "c88a5e10c87704857305bb6bca5f34f86709adf8c7f1a554eae5fd1452be5bbe"
+  }
+}

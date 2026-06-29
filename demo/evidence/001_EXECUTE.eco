@@ -1,0 +1,289 @@
+{
+  "eco_version": "eco.v0.2",
+  "format": "eco.evidence-artifact",
+  "version": "0.1",
+  "origin_app": "verifiable-memory-mcp",
+  "artifact_id": "001_EXECUTE_47ad6c2449e0",
+  "artifact_type": "run_snapshot",
+  "lifecycle": "SNAPSHOT",
+  "manifest": {
+    "agent": "ai-infrastructure-research-agent",
+    "task": "Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.",
+    "cycle": 1,
+    "decision": "EXECUTE",
+    "memory": "VERIFIED",
+    "status": "VALID",
+    "failedEntry": null,
+    "createdAt": "2026-06-29T08:20:07.026Z",
+    "label": "cycle_001_EXECUTE"
+  },
+  "authority_summary": {
+    "owner": "demo-owner",
+    "flowCreator": "demo-owner",
+    "policyVersion": 1,
+    "ownerReview": null
+  },
+  "policy_summary": {
+    "policyStatus": "TRUSTED",
+    "policyVersion": 1,
+    "sensitiveActions": [
+      "approve_wire_transfer",
+      "export_customer_records",
+      "delete_audit_log"
+    ]
+  },
+  "ledger_summary": {
+    "events": [
+      {
+        "cycle": 0,
+        "at": "2026-06-29T08:20:06.952Z",
+        "type": "setup_complete",
+        "label": "Setup complete: agent charter created, policy v1 active, memory verified"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "cycle_started",
+        "label": "Cycle 1 started"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "memory_verified",
+        "label": "Memory verified"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_selected",
+        "label": "Source selected: IBM Quantum — trusted source for quantum-safe infrastructure"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_visited",
+        "label": "Source visited: IBM Quantum"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_selected",
+        "label": "Source selected: Anthropic — trusted source for agent safety and oversight"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_visited",
+        "label": "Source visited: Anthropic"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_selected",
+        "label": "Source selected: arXiv AI Agents — trusted source for AI agents and verifiable memory"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "source_visited",
+        "label": "Source visited: arXiv AI Agents"
+      },
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "type": "brief_generated",
+        "label": "Research brief generated"
+      }
+    ],
+    "cycles": [
+      {
+        "cycle": 1,
+        "at": "2026-06-29T08:20:07.024Z",
+        "memory": "VERIFIED",
+        "policyVersion": 1,
+        "decision": "EXECUTE",
+        "currentStep": "selecting trusted sources",
+        "reason": "policy v1 active — agent proceeds with research"
+      }
+    ],
+    "research": {
+      "sources": [
+        {
+          "name": "IBM Quantum",
+          "url": "https://example.local/ibm-quantum",
+          "reason": "trusted source for quantum-safe infrastructure",
+          "finding": "New guidance on migrating cryptographic infrastructure to quantum-safe algorithms."
+        },
+        {
+          "name": "Anthropic",
+          "url": "https://example.local/anthropic-safety",
+          "reason": "trusted source for agent safety and oversight",
+          "finding": "Updated research on agent oversight and constitutional safeguards for autonomous systems."
+        },
+        {
+          "name": "arXiv AI Agents",
+          "url": "https://example.local/arxiv-agents",
+          "reason": "trusted source for AI agents and verifiable memory",
+          "finding": "New paper proposes tamper-evident memory logs as a foundation for agent auditability."
+        }
+      ],
+      "brief": "Reviewed 3 source(s): IBM Quantum, Anthropic, arXiv AI Agents. New guidance on migrating cryptographic infrastructure to quantum-safe algorithms. Updated research on agent oversight and constitutional safeguards for autonomous systems. New paper proposes tamper-evident memory logs as a foundation for agent auditability."
+    }
+  },
+  "assets_index": {
+    "entries": [],
+    "note": "This demo artifact stores memory and run evidence inline. External assets can be indexed here by future workflows."
+  },
+  "verification": {
+    "integrity": "VALID",
+    "lifecycle": "SNAPSHOT",
+    "failedEntry": null,
+    "bundleHash": "47ad6c2449e0f545289336aeb13febe2eec0008849245f5f370a38c114c78f9a"
+  },
+  "anchor": {
+    "algorithm": "sha256",
+    "bundleHash": "47ad6c2449e0f545289336aeb13febe2eec0008849245f5f370a38c114c78f9a"
+  },
+  "bundle": {
+    "format": "verifiable-memory-bundle",
+    "version": "0.1",
+    "exportedAt": "2026-06-29T08:20:07.026Z",
+    "entries": [
+      {
+        "id": "mem_89870a65",
+        "createdAt": "2026-06-29T08:20:06.963Z",
+        "content": "{\"type\":\"agent_charter\",\"agent\":\"ai-infrastructure-research-agent\",\"createdBy\":\"owner\",\"createdAt\":\"2026-06-29T08:20:06.952Z\",\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"doctrine\":[\"I always verify memory before acting.\",\"I only trust append-only updates.\",\"I separate external content from owner instructions.\",\"I write evidence for every action.\",\"If integrity fails, I stop.\"],\"status\":\"trusted_genesis_entry\"}",
+        "tags": [
+          "demo",
+          "identity",
+          "charter",
+          "genesis"
+        ],
+        "contentHash": "af547ad150fb11b50d5b5527bcde032f537c5b4b649c85d0640c93c314a5ab08",
+        "prevHash": null,
+        "entryHash": "539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6"
+      },
+      {
+        "id": "mem_a2854af3",
+        "createdAt": "2026-06-29T08:20:06.977Z",
+        "content": "{\"type\":\"agent_created\",\"agent\":\"ai-infrastructure-research-agent\",\"createdBy\":\"owner\",\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"status\":\"active\"}",
+        "tags": [
+          "demo",
+          "identity"
+        ],
+        "contentHash": "bc379d18568f10154488bc4df7202f8fd426275512fe4fdb9d64366a90475179",
+        "prevHash": "539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6",
+        "entryHash": "a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6"
+      },
+      {
+        "id": "mem_d43f4fb9",
+        "createdAt": "2026-06-29T08:20:06.977Z",
+        "content": "{\"type\":\"policy_created\",\"agent\":\"ai-infrastructure-research-agent\",\"actor\":\"owner\",\"ownerSignature\":true,\"policyVersion\":1,\"task\":\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\",\"allowedSources\":[{\"name\":\"IBM Quantum\",\"url\":\"https://example.local/ibm-quantum\",\"topic\":\"quantum-safe infrastructure\",\"addedInVersion\":1,\"finding\":\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\"},{\"name\":\"Anthropic\",\"url\":\"https://example.local/anthropic-safety\",\"topic\":\"agent safety and oversight\",\"addedInVersion\":1,\"finding\":\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\"},{\"name\":\"arXiv AI Agents\",\"url\":\"https://example.local/arxiv-agents\",\"topic\":\"AI agents and verifiable memory\",\"addedInVersion\":1,\"finding\":\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\"}],\"deniedActions\":[\"approve_wire_transfer\",\"export_customer_records\",\"delete_audit_log\"],\"status\":\"active\"}",
+        "tags": [
+          "demo",
+          "policy"
+        ],
+        "contentHash": "c09b6f8887d0a249f6c7189275134ea8fe35ba8cb30ae48b01cbed02246633c2",
+        "prevHash": "a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6",
+        "entryHash": "1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56"
+      },
+      {
+        "id": "mem_13e74afe",
+        "createdAt": "2026-06-29T08:20:07.024Z",
+        "content": "{\"type\":\"source_selected\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"IBM Quantum\",\"url\":\"https://example.local/ibm-quantum\",\"reason\":\"trusted source for quantum-safe infrastructure\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "cb7d3f58d0fef91d5be54e3cac4834a5a88533fa82d9bac34129c4e274574eed",
+        "prevHash": "1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56",
+        "entryHash": "ee1765069a9557de0c5952309d19a2fc96a965155576e4d3dcc236f6c9493d9e"
+      },
+      {
+        "id": "mem_d8185830",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"source_visited\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"IBM Quantum\",\"url\":\"https://example.local/ibm-quantum\",\"result\":\"relevant_update_found\",\"finding\":\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "f7dc1f3221ef06976daca13332c96c9816639b569031988b6db423aafe8377f0",
+        "prevHash": "ee1765069a9557de0c5952309d19a2fc96a965155576e4d3dcc236f6c9493d9e",
+        "entryHash": "9976dd4c94d443b7cc7a318c51fecc0dee066778aa28b5d23913f0467a7e6439"
+      },
+      {
+        "id": "mem_3dfaf868",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"source_selected\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"Anthropic\",\"url\":\"https://example.local/anthropic-safety\",\"reason\":\"trusted source for agent safety and oversight\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "cdb4d9a790a2c55d45c4ffc24e86e084ec66a2eb8ed62711e3f3c3d1c3af6cf1",
+        "prevHash": "9976dd4c94d443b7cc7a318c51fecc0dee066778aa28b5d23913f0467a7e6439",
+        "entryHash": "7c216c6029b9867f67055bbdf3194183876db78104b58928ae5a04d9f6eb8021"
+      },
+      {
+        "id": "mem_bb7d3621",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"source_visited\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"Anthropic\",\"url\":\"https://example.local/anthropic-safety\",\"result\":\"relevant_update_found\",\"finding\":\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "a5e251a65bb7adceba1490201fe44270e23e86c20ffdc6b62c6c05ed5f637203",
+        "prevHash": "7c216c6029b9867f67055bbdf3194183876db78104b58928ae5a04d9f6eb8021",
+        "entryHash": "2f23e5c0d1980043581929520ce7bd747cf21df8ebafb58682f7b4465674ce19"
+      },
+      {
+        "id": "mem_40a8242b",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"source_selected\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"arXiv AI Agents\",\"url\":\"https://example.local/arxiv-agents\",\"reason\":\"trusted source for AI agents and verifiable memory\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "3ade489970350c8e469228289156df375ea8e7befba9874e1a5ef653bc959c36",
+        "prevHash": "2f23e5c0d1980043581929520ce7bd747cf21df8ebafb58682f7b4465674ce19",
+        "entryHash": "239e2d23d3d86351b630b018970fc23b51bad2d69a2a87ba07b4521e6272a37c"
+      },
+      {
+        "id": "mem_f5ee0c52",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"source_visited\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"source\":\"arXiv AI Agents\",\"url\":\"https://example.local/arxiv-agents\",\"result\":\"relevant_update_found\",\"finding\":\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\"}",
+        "tags": [
+          "demo",
+          "research",
+          "source"
+        ],
+        "contentHash": "d5ddf556ec05a131f37f22e21573362f2bc38b68669e55b92a0f6b770bc9644b",
+        "prevHash": "239e2d23d3d86351b630b018970fc23b51bad2d69a2a87ba07b4521e6272a37c",
+        "entryHash": "92247e23728f930a75b9154afc7675fc16888a5e37805d916986706ba67e5b1b"
+      },
+      {
+        "id": "mem_166985ae",
+        "createdAt": "2026-06-29T08:20:07.025Z",
+        "content": "{\"type\":\"brief_generated\",\"agent\":\"ai-infrastructure-research-agent\",\"cycle\":1,\"summary\":\"Reviewed 3 source(s): IBM Quantum, Anthropic, arXiv AI Agents. New guidance on migrating cryptographic infrastructure to quantum-safe algorithms. Updated research on agent oversight and constitutional safeguards for autonomous systems. New paper proposes tamper-evident memory logs as a foundation for agent auditability.\",\"sourcesUsed\":[\"IBM Quantum\",\"Anthropic\",\"arXiv AI Agents\"]}",
+        "tags": [
+          "demo",
+          "research",
+          "brief"
+        ],
+        "contentHash": "831379bca5b1c3bb779c960fe98e71bb82191676edfc8970b2dcb7c64e363f6f",
+        "prevHash": "92247e23728f930a75b9154afc7675fc16888a5e37805d916986706ba67e5b1b",
+        "entryHash": "170e6845f53160ba663f9d81a1136bd8a2ee870e9521ff575827c3f8ec5ea842"
+      }
+    ]
+  },
+  "bundleText": "{\n  \"format\": \"verifiable-memory-bundle\",\n  \"version\": \"0.1\",\n  \"exportedAt\": \"2026-06-29T08:20:07.026Z\",\n  \"entries\": [\n    {\n      \"id\": \"mem_89870a65\",\n      \"createdAt\": \"2026-06-29T08:20:06.963Z\",\n      \"content\": \"{\\\"type\\\":\\\"agent_charter\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"createdBy\\\":\\\"owner\\\",\\\"createdAt\\\":\\\"2026-06-29T08:20:06.952Z\\\",\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"doctrine\\\":[\\\"I always verify memory before acting.\\\",\\\"I only trust append-only updates.\\\",\\\"I separate external content from owner instructions.\\\",\\\"I write evidence for every action.\\\",\\\"If integrity fails, I stop.\\\"],\\\"status\\\":\\\"trusted_genesis_entry\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"identity\",\n        \"charter\",\n        \"genesis\"\n      ],\n      \"contentHash\": \"af547ad150fb11b50d5b5527bcde032f537c5b4b649c85d0640c93c314a5ab08\",\n      \"prevHash\": null,\n      \"entryHash\": \"539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6\"\n    },\n    {\n      \"id\": \"mem_a2854af3\",\n      \"createdAt\": \"2026-06-29T08:20:06.977Z\",\n      \"content\": \"{\\\"type\\\":\\\"agent_created\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"createdBy\\\":\\\"owner\\\",\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"status\\\":\\\"active\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"identity\"\n      ],\n      \"contentHash\": \"bc379d18568f10154488bc4df7202f8fd426275512fe4fdb9d64366a90475179\",\n      \"prevHash\": \"539e14d8ab135215f2d3562a74245b7cd9990868a3b4b2219dd6e4cb1fc227d6\",\n      \"entryHash\": \"a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6\"\n    },\n    {\n      \"id\": \"mem_d43f4fb9\",\n      \"createdAt\": \"2026-06-29T08:20:06.977Z\",\n      \"content\": \"{\\\"type\\\":\\\"policy_created\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"actor\\\":\\\"owner\\\",\\\"ownerSignature\\\":true,\\\"policyVersion\\\":1,\\\"task\\\":\\\"Monitor news about AI agents, secure digital infrastructure, quantum-safe readiness, and verifiable memory.\\\",\\\"allowedSources\\\":[{\\\"name\\\":\\\"IBM Quantum\\\",\\\"url\\\":\\\"https://example.local/ibm-quantum\\\",\\\"topic\\\":\\\"quantum-safe infrastructure\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\\\"},{\\\"name\\\":\\\"Anthropic\\\",\\\"url\\\":\\\"https://example.local/anthropic-safety\\\",\\\"topic\\\":\\\"agent safety and oversight\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\\\"},{\\\"name\\\":\\\"arXiv AI Agents\\\",\\\"url\\\":\\\"https://example.local/arxiv-agents\\\",\\\"topic\\\":\\\"AI agents and verifiable memory\\\",\\\"addedInVersion\\\":1,\\\"finding\\\":\\\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\\\"}],\\\"deniedActions\\\":[\\\"approve_wire_transfer\\\",\\\"export_customer_records\\\",\\\"delete_audit_log\\\"],\\\"status\\\":\\\"active\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"policy\"\n      ],\n      \"contentHash\": \"c09b6f8887d0a249f6c7189275134ea8fe35ba8cb30ae48b01cbed02246633c2\",\n      \"prevHash\": \"a7a85a69b3d940570a9ed9b405fe1c032792a37274ddaa4323a8e2f5095465d6\",\n      \"entryHash\": \"1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56\"\n    },\n    {\n      \"id\": \"mem_13e74afe\",\n      \"createdAt\": \"2026-06-29T08:20:07.024Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_selected\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"IBM Quantum\\\",\\\"url\\\":\\\"https://example.local/ibm-quantum\\\",\\\"reason\\\":\\\"trusted source for quantum-safe infrastructure\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"cb7d3f58d0fef91d5be54e3cac4834a5a88533fa82d9bac34129c4e274574eed\",\n      \"prevHash\": \"1492c30773c7ac850d7fdfd1e8e950b2d11e3d511219d0fe6f1e94cba0b57f56\",\n      \"entryHash\": \"ee1765069a9557de0c5952309d19a2fc96a965155576e4d3dcc236f6c9493d9e\"\n    },\n    {\n      \"id\": \"mem_d8185830\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_visited\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"IBM Quantum\\\",\\\"url\\\":\\\"https://example.local/ibm-quantum\\\",\\\"result\\\":\\\"relevant_update_found\\\",\\\"finding\\\":\\\"New guidance on migrating cryptographic infrastructure to quantum-safe algorithms.\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"f7dc1f3221ef06976daca13332c96c9816639b569031988b6db423aafe8377f0\",\n      \"prevHash\": \"ee1765069a9557de0c5952309d19a2fc96a965155576e4d3dcc236f6c9493d9e\",\n      \"entryHash\": \"9976dd4c94d443b7cc7a318c51fecc0dee066778aa28b5d23913f0467a7e6439\"\n    },\n    {\n      \"id\": \"mem_3dfaf868\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_selected\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"Anthropic\\\",\\\"url\\\":\\\"https://example.local/anthropic-safety\\\",\\\"reason\\\":\\\"trusted source for agent safety and oversight\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"cdb4d9a790a2c55d45c4ffc24e86e084ec66a2eb8ed62711e3f3c3d1c3af6cf1\",\n      \"prevHash\": \"9976dd4c94d443b7cc7a318c51fecc0dee066778aa28b5d23913f0467a7e6439\",\n      \"entryHash\": \"7c216c6029b9867f67055bbdf3194183876db78104b58928ae5a04d9f6eb8021\"\n    },\n    {\n      \"id\": \"mem_bb7d3621\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_visited\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"Anthropic\\\",\\\"url\\\":\\\"https://example.local/anthropic-safety\\\",\\\"result\\\":\\\"relevant_update_found\\\",\\\"finding\\\":\\\"Updated research on agent oversight and constitutional safeguards for autonomous systems.\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"a5e251a65bb7adceba1490201fe44270e23e86c20ffdc6b62c6c05ed5f637203\",\n      \"prevHash\": \"7c216c6029b9867f67055bbdf3194183876db78104b58928ae5a04d9f6eb8021\",\n      \"entryHash\": \"2f23e5c0d1980043581929520ce7bd747cf21df8ebafb58682f7b4465674ce19\"\n    },\n    {\n      \"id\": \"mem_40a8242b\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_selected\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"arXiv AI Agents\\\",\\\"url\\\":\\\"https://example.local/arxiv-agents\\\",\\\"reason\\\":\\\"trusted source for AI agents and verifiable memory\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"3ade489970350c8e469228289156df375ea8e7befba9874e1a5ef653bc959c36\",\n      \"prevHash\": \"2f23e5c0d1980043581929520ce7bd747cf21df8ebafb58682f7b4465674ce19\",\n      \"entryHash\": \"239e2d23d3d86351b630b018970fc23b51bad2d69a2a87ba07b4521e6272a37c\"\n    },\n    {\n      \"id\": \"mem_f5ee0c52\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"source_visited\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"source\\\":\\\"arXiv AI Agents\\\",\\\"url\\\":\\\"https://example.local/arxiv-agents\\\",\\\"result\\\":\\\"relevant_update_found\\\",\\\"finding\\\":\\\"New paper proposes tamper-evident memory logs as a foundation for agent auditability.\\\"}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"source\"\n      ],\n      \"contentHash\": \"d5ddf556ec05a131f37f22e21573362f2bc38b68669e55b92a0f6b770bc9644b\",\n      \"prevHash\": \"239e2d23d3d86351b630b018970fc23b51bad2d69a2a87ba07b4521e6272a37c\",\n      \"entryHash\": \"92247e23728f930a75b9154afc7675fc16888a5e37805d916986706ba67e5b1b\"\n    },\n    {\n      \"id\": \"mem_166985ae\",\n      \"createdAt\": \"2026-06-29T08:20:07.025Z\",\n      \"content\": \"{\\\"type\\\":\\\"brief_generated\\\",\\\"agent\\\":\\\"ai-infrastructure-research-agent\\\",\\\"cycle\\\":1,\\\"summary\\\":\\\"Reviewed 3 source(s): IBM Quantum, Anthropic, arXiv AI Agents. New guidance on migrating cryptographic infrastructure to quantum-safe algorithms. Updated research on agent oversight and constitutional safeguards for autonomous systems. New paper proposes tamper-evident memory logs as a foundation for agent auditability.\\\",\\\"sourcesUsed\\\":[\\\"IBM Quantum\\\",\\\"Anthropic\\\",\\\"arXiv AI Agents\\\"]}\",\n      \"tags\": [\n        \"demo\",\n        \"research\",\n        \"brief\"\n      ],\n      \"contentHash\": \"831379bca5b1c3bb779c960fe98e71bb82191676edfc8970b2dcb7c64e363f6f\",\n      \"prevHash\": \"92247e23728f930a75b9154afc7675fc16888a5e37805d916986706ba67e5b1b\",\n      \"entryHash\": \"170e6845f53160ba663f9d81a1136bd8a2ee870e9521ff575827c3f8ec5ea842\"\n    }\n  ]\n}",
+  "report": "# Evidence report\n\nAgent: ai-infrastructure-research-agent\nCycle: 1\nDecision: EXECUTE\nMemory: VERIFIED\nStatus: VALID\nCreated at: 2026-06-29T08:20:07.026Z\n\n## Summary\npolicy v1 active — agent proceeds with research\n\n## Research brief\nReviewed 3 source(s): IBM Quantum, Anthropic, arXiv AI Agents. New guidance on migrating cryptographic infrastructure to quantum-safe algorithms. Updated research on agent oversight and constitutional safeguards for autonomous systems. New paper proposes tamper-evident memory logs as a foundation for agent auditability.\n",
+  "packageHash": {
+    "algorithm": "sha256",
+    "value": "98b519f688f0b8d56f06b2dc6b128cd3afe27976938c9a7d4ee586c28602e6f8"
+  }
+}

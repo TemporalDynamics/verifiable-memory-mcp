@@ -7,5 +7,6 @@ dist/
 .DS_Store
 seed.mjs
 anchor-out/
-demo/evidence/
+demo/evidence/latest.eco
+demo/evidence/latest.json
 demo/state.json
