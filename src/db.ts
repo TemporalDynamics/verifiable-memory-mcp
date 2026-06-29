@@ -1,13 +1,29 @@
 import Database from "better-sqlite3";
+import { Entry } from "@napi-rs/keyring";
 import path from "node:path";
 import os from "node:os";
 import { mkdirSync } from "node:fs";
 import { MemoryEntry } from "./types.js";
+import { sha256 } from "./hashing.js";
 
 const DB_DIR = process.env.VMCP_DATA_DIR ?? path.join(os.homedir(), ".verifiable-memory-mcp");
 const DB_PATH = path.join(DB_DIR, "memory.db");
+const SERVICE_NAME = "verifiable-memory-mcp";
+const ACCOUNT_NAME = `state-root-${sha256(DB_PATH).slice(0, 16)}`;
+const SKIP_STATE_ROOT = "VMCP_SKIP_STATE_ROOT";
 
 let db: Database.Database;
+let stateRootUnavailable = false;
+const warnedStateRootActions = new Set<string>();
+
+export interface StateRootCheck {
+  stateRootVerified: boolean;
+  status: "verified" | "missing" | "mismatch" | "skipped" | "unavailable" | "empty";
+  dbRoot: string | null;
+  keychainRoot: string | null;
+  accountName: string;
+  message?: string;
+}
 
 export function getDb(): Database.Database {
   if (!db) {
@@ -64,7 +80,127 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
     return entry;
   });
 
-  return run();
+  const entry = run();
+  persistStateRoot(entry.entryHash);
+  return entry;
+}
+
+export function verifyStateRoot(): StateRootCheck {
+  const latest = getLatestEntry();
+  const dbRoot = latest?.entryHash ?? null;
+
+  if (isStateRootSkipped()) {
+    return {
+      stateRootVerified: false,
+      status: "skipped",
+      dbRoot,
+      keychainRoot: null,
+      accountName: ACCOUNT_NAME,
+      message: `${SKIP_STATE_ROOT}=true; State Root verification skipped`,
+    };
+  }
+
+  if (!dbRoot) {
+    return {
+      stateRootVerified: true,
+      status: "empty",
+      dbRoot,
+      keychainRoot: null,
+      accountName: ACCOUNT_NAME,
+      message: "No entries to compare against a State Root",
+    };
+  }
+
+  if (stateRootUnavailable) {
+    return {
+      stateRootVerified: false,
+      status: "unavailable",
+      dbRoot,
+      keychainRoot: null,
+      accountName: ACCOUNT_NAME,
+      message: "OS keychain is unavailable; continuing without blocking MCP",
+    };
+  }
+
+  let keychainRoot: string | null;
+  try {
+    keychainRoot = stateRootEntry().getPassword();
+    stateRootUnavailable = false;
+  } catch (error) {
+    warnStateRootFailure("read", error);
+    return {
+      stateRootVerified: false,
+      status: "unavailable",
+      dbRoot,
+      keychainRoot: null,
+      accountName: ACCOUNT_NAME,
+      message: "OS keychain is unavailable; continuing without blocking MCP",
+    };
+  }
+
+  if (!keychainRoot) {
+    return {
+      stateRootVerified: false,
+      status: "missing",
+      dbRoot,
+      keychainRoot: null,
+      accountName: ACCOUNT_NAME,
+      message: "INTEGRITY ERROR: DB has entries but no State Root exists in OS keychain",
+    };
+  }
+
+  if (keychainRoot !== dbRoot) {
+    return {
+      stateRootVerified: false,
+      status: "mismatch",
+      dbRoot,
+      keychainRoot,
+      accountName: ACCOUNT_NAME,
+      message: "TAMPERING DETECTED: DB latest entryHash does not match OS keychain State Root",
+    };
+  }
+
+  return {
+    stateRootVerified: true,
+    status: "verified",
+    dbRoot,
+    keychainRoot,
+    accountName: ACCOUNT_NAME,
+  };
+}
+
+function persistStateRoot(entryHash: string): void {
+  if (isStateRootSkipped()) return;
+
+  try {
+    stateRootEntry().setPassword(entryHash);
+    stateRootUnavailable = false;
+  } catch (error) {
+    warnStateRootFailure("write", error);
+  }
+}
+
+function stateRootEntry(): Entry {
+  return new Entry(SERVICE_NAME, ACCOUNT_NAME);
+}
+
+function isStateRootSkipped(): boolean {
+  return process.env[SKIP_STATE_ROOT]?.toLowerCase() === "true";
+}
+
+function warnStateRootFailure(action: "read" | "write", error: unknown): void {
+  stateRootUnavailable = true;
+  if (warnedStateRootActions.has(action)) return;
+  warnedStateRootActions.add(action);
+  console.warn(
+    `[verifiable-memory-mcp] State Root ${action} failed (${formatError(error)}). ` +
+      `Continuing without blocking MCP. Set ${SKIP_STATE_ROOT}=true to silence this warning.`
+  );
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 
 export function getEntry(id: string): MemoryEntry | undefined {

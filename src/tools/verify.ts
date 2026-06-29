@@ -1,4 +1,4 @@
-import { getEntry } from "../db.js";
+import { getEntry, verifyStateRoot } from "../db.js";
 import { hashContent, hashEntry, buildEntryCanonical } from "../hashing.js";
 import { ToolResponse } from "../types.js";
 
@@ -17,7 +17,9 @@ export function verify(args: { id: string }): ToolResponse {
   const recomputedEntryHash = hashEntry(recomputedCanonical);
   const chainValid = recomputedEntryHash === entry.entryHash;
 
-  const allOk = contentValid && chainValid;
+  const stateRoot = verifyStateRoot();
+  const stateRootBlockingFailure = stateRoot.status === "missing" || stateRoot.status === "mismatch";
+  const allOk = contentValid && chainValid && !stateRootBlockingFailure;
 
   return {
     content: [
@@ -27,6 +29,7 @@ export function verify(args: { id: string }): ToolResponse {
           {
             id: entry.id,
             valid: allOk,
+            stateRootVerified: stateRoot.stateRootVerified,
             createdAt: entry.createdAt,
             checks: {
               contentIntegrity: {
@@ -39,9 +42,21 @@ export function verify(args: { id: string }): ToolResponse {
                 stored: entry.entryHash,
                 computed: recomputedEntryHash,
               },
+              stateRoot: {
+                passed: !stateRootBlockingFailure,
+                status: stateRoot.status,
+                dbRoot: stateRoot.dbRoot,
+                keychainRoot: stateRoot.keychainRoot,
+                accountName: stateRoot.accountName,
+                message: stateRoot.message,
+              },
             },
             summary: allOk
               ? "Entry is intact and chain-verified"
+              : stateRoot.status === "mismatch"
+                ? "TAMPERING DETECTED: State Root mismatch"
+                : stateRoot.status === "missing"
+                  ? "Integrity error: State Root is missing"
               : "Entry has been tampered with",
           },
           null,

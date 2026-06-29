@@ -23,6 +23,7 @@ let tools: {
   timeline: (a: { tag?: string; limit?: number; includeContent?: boolean }) => any;
   exportEntries: (a: { ids?: string[]; limit?: number }) => any;
 };
+let previousSkipStateRoot: string | undefined;
 
 function parse(res: any): any {
   return JSON.parse(res.content[0].text);
@@ -34,7 +35,9 @@ function rawDb(): InstanceType<typeof Database> {
 
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "vmcp-test-"));
+  previousSkipStateRoot = process.env.VMCP_SKIP_STATE_ROOT;
   process.env.VMCP_DATA_DIR = dir;
+  process.env.VMCP_SKIP_STATE_ROOT = "true";
   vi.resetModules();
   const [remember, recall, verify, chain, timeline, exp] = await Promise.all([
     import("../src/tools/remember.js"),
@@ -56,6 +59,11 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers();
+  if (previousSkipStateRoot === undefined) {
+    delete process.env.VMCP_SKIP_STATE_ROOT;
+  } else {
+    process.env.VMCP_SKIP_STATE_ROOT = previousSkipStateRoot;
+  }
   rmSync(dir, { recursive: true, force: true });
 });
 
