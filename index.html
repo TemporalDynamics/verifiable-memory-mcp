@@ -405,40 +405,52 @@ npm run demo:verifier</pre>
 
   <section id="ecosystem">
     <p class="kicker">Ecosystem</p>
-    <h2>Part of a broader evidence ecosystem.</h2>
+    <h2>One verification pattern, multiple applied workflows.</h2>
     <p class="section-lead">
-      These are not separate product claims. They are different places where the same underlying need shows up: a claim about information is only trustworthy if it can be checked against the record it came from, not just taken on faith. VMMCP and Talo apply this where agents act on memory. EcoSign and CustodyArt apply it where documents and creative assets need provenance. WITH/WIT applies it to personal memory — answers link back to the records that support them.
+      These are not separate product claims. Every application below shares one discipline: a claim about
+      information is only trustworthy if it can be checked against the record it came from, not taken on
+      faith. Evidence travels in a portable package (ECO) that anyone can verify independently — outside
+      the system that produced it.
     </p>
     <div class="ecosystem-list">
       <div class="ecosystem-item">
-        <h3><a href="https://github.com/TemporalDynamics/AppCrew">AppCrew</a></h3>
-        <p class="subhead">Observable runtime for governed AI agents.</p>
-        <p>AppCrew is the reusable runtime layer around agent execution: run state, timelines, approval gates, and evidence hooks. VMMCP is the integrity layer that can be attached when memory must be verified before action.</p>
+        <h3><a href="#sandbox">Verifiable Memory MCP</a></h3>
+        <p class="subhead">Public reproducible technical demo — this site.</p>
+        <p>A local, tamper-evident memory layer that lets agents verify what they know before acting —
+        and stop when integrity fails. Install it from npm, tamper with it, verify it yourself.</p>
       </div>
       <div class="ecosystem-item">
-        <h3>Applied recruiting workflow</h3>
-        <p class="subhead">Vertical validation for recruiting agents.</p>
-        <p>The same control pattern is being validated inside a real recruiting workflow: external candidate documents, approval gates, evidence trails, and integrity failure handling. A demo video will be published here; until then, the public sandbox is the way to evaluate the pattern directly.</p>
+        <h3><a href="./verifier/index.html">ECO Evidence Package</a></h3>
+        <p class="subhead">Shared evidence packaging layer.</p>
+        <p>The bridge between memory, evidence, and verification: portable evidence packages that can be
+        checked independently, outside the original system, across workflows, devices, and operators.
+        The open verifier runs on this site.</p>
       </div>
       <div class="ecosystem-item">
-        <h3><a href="./verifier/index.html">Portable ECO verification</a></h3>
-        <p class="subhead">Independent verification for ECO evidence artifacts.</p>
-        <p>The goal is portability: evidence should be re-checkable outside the original system, so verification can remain credible across workflows, devices, and operators.</p>
+        <h3><a href="https://ecosign.app">EcoSign</a></h3>
+        <p class="subhead">Commercial application in preparation.</p>
+        <p>Document and agreement workflows with verifiable evidence: integrity, export, and independent
+        verification for document-centered work. Open verifier source:
+        <a href="https://github.com/TemporalDynamics/ecosign-public">ecosign-public</a>.</p>
       </div>
       <div class="ecosystem-item">
-        <h3><a href="https://github.com/TemporalDynamics/ecosign-public">EcoSign</a></h3>
-        <p class="subhead">Evidence and verification workflows for digital documents.</p>
-        <p>EcoSign applies an evidence-first approach to document integrity, export, and independent verification in document-centered workflows.</p>
+        <h3><a href="https://custodyart.vercel.app">CustodyArt</a></h3>
+        <p class="subhead">Applied provenance and custody workflow.</p>
+        <p>Custody and evidence discipline for creative digital assets, where provenance and traceability
+        matter over time. Sealing flow live: upload, fingerprint, witness, exportable evidence.</p>
       </div>
       <div class="ecosystem-item">
-        <h3>CustodyArt</h3>
-        <p class="subhead">Provenance and custody for creative digital assets.</p>
-        <p>CustodyArt applies custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.</p>
+        <h3><a href="https://with-gamma.vercel.app/">WITH</a></h3>
+        <p class="subhead">Roadmap — personal verifiable memory.</p>
+        <p>The same evidence-first principle applied to personal memory for AI assistants: answers that
+        link back to the records that support them. In active development; core remains private.</p>
       </div>
       <div class="ecosystem-item">
-        <h3>WITH / WIT</h3>
-        <p class="subhead">Deterministic semantic memory layer.</p>
-        <p>WITH/WIT applies the same evidence-first principle to human memory: the system can retrieve an answer and show the records that support it. The core remains private; a related public surface is <a href="https://github.com/TemporalDynamics/with-typing">with-typing</a>.</p>
+        <h3><a href="https://talo-landing.vercel.app">Talo</a></h3>
+        <p class="subhead">Applied agent workflow — controlled demo.</p>
+        <p>The same integrity-before-action pattern running inside a recruiting operations workflow:
+        agents verify memory before acting, pause for owner approval, and stop when integrity fails.
+        Private demo access — restricted.</p>
       </div>
     </div>
   </section>
