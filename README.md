@@ -374,53 +374,41 @@ If you work across languages, bilingual entries or bilingual tags improve recall
 | Local-first | Sometimes | Sometimes | **Yes** |
 | MCP-native | Varies | Varies | **Yes** |
 
-## Part of a broader evidence ecosystem
+## One verification pattern, multiple applied workflows
 
-This public integrity layer is one focused building block inside a wider architecture for governed AI, portable evidence, and independent verification.
+This public integrity layer is one focused building block inside a wider architecture for portable evidence and independent verification.
 
-These are not separate product claims. They are different places where the same underlying need shows up: a claim about information is only trustworthy if it can be checked against the record it came from, not just taken on faith. VMMCP and Talo apply this where agents act on memory. EcoSign and CustodyArt apply it where documents and creative assets need provenance. WITH/WIT applies it to personal memory — answers link back to the records that support them.
+These are not separate product claims. Every application below shares one discipline: a claim about information is only trustworthy if it can be checked against the record it came from, not taken on faith. Evidence travels in a portable package (ECO) that anyone can verify independently — outside the system that produced it.
 
-## Applied workflow proof
+### [ECO Evidence Package](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)
 
-Beyond the sandbox, this pattern is being validated inside a full recruiting application workflow: verifying memory before action, pausing for owner approval, and stopping when integrity fails. A demo video will be published here once recorded.
+Shared evidence packaging layer.
 
-The recording will show external candidate documents, owner approval, evidence generation, and stop-by-integrity behavior in a real operational flow. Until it's published, the sandbox above remains the reproducible way to evaluate the pattern directly.
+The bridge between memory, evidence, and verification: portable evidence packages that can be checked independently, outside the original system, across workflows, devices, and operators. The open verifier runs in the browser.
 
-### [AppCrew](https://github.com/TemporalDynamics/AppCrew)
+### [EcoSign](https://ecosign.app)
 
-Observable runtime for governed AI agents.
+Commercial application in preparation.
 
-AppCrew is the reusable runtime layer around agent execution: run state, timelines, approval gates, and evidence hooks. VMMCP is the integrity layer that can be attached when memory must be verified before action.
+Document and agreement workflows with verifiable evidence: integrity, export, and independent verification for document-centered work. Open verifier source: [ecosign-public](https://github.com/TemporalDynamics/ecosign-public).
 
-### [Talo](https://github.com/TemporalDynamics/Talo)
+### [CustodyArt](https://custodyart.vercel.app)
 
-Vertical validation for recruiting agents.
+Applied provenance and custody workflow.
 
-Talo is a multi-agent recruiting platform that applies the same integrity-before-action pattern to talent operations: agents verify their memory before sourcing, pause for owner approval, and stop if the chain is broken. The same hash chain format runs in both systems — cross-validated at the byte level. A demo video will be published here; until then, the public sandbox is the way to evaluate the pattern directly.
+Custody and evidence discipline for creative digital assets, where provenance and traceability matter over time. Sealing flow live: upload, fingerprint, witness, exportable evidence.
 
-### [Portable ECO verification](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)
+### [WITH](https://with-gamma.vercel.app/)
 
-Independent verification for ECO evidence artifacts.
+Roadmap — personal verifiable memory.
 
-The goal is portability: evidence should be re-checkable outside the original system, so verification can remain credible across workflows, devices, and operators.
+The same evidence-first principle applied to personal memory for AI assistants: answers that link back to the records that support them. In active development; core remains private.
 
-### [EcoSign](https://github.com/TemporalDynamics/ecosign-public)
+### [Talo](https://talo-landing.vercel.app)
 
-Evidence and verification workflows for digital documents.
+Applied agent workflow — controlled demo.
 
-EcoSign applies an evidence-first approach to document integrity, export, and independent verification in document-centered workflows.
-
-### CustodyArt
-
-Provenance and custody for creative digital assets.
-
-CustodyArt applies custody and evidence discipline to artworks and digital cultural assets, where provenance and traceability matter over time.
-
-### WITH / WIT
-
-Deterministic semantic memory layer.
-
-WITH/WIT applies the same evidence-first principle to human memory: the system can retrieve an answer and show the records that support it. The core remains private; a related public surface is [with-typing](https://github.com/TemporalDynamics/with-typing).
+Talo applies the same integrity-before-action pattern to recruiting operations: agents verify their memory before sourcing, pause for owner approval, and stop if the chain is broken. The same evidence format has been cross-validated at the byte level with this package. Private demo access — restricted.
 
 ## Security / threat model
 
