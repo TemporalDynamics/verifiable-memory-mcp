@@ -195,16 +195,85 @@
   ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
   ul.checks li { display: flex; gap: .6rem; align-items: flex-start; font-size: .92rem; }
   ul.checks li::before { content: "→"; color: var(--accent); font-weight: 700; }
-  .ecosystem-list { display: grid; gap: .9rem; }
-  .ecosystem-item {
+  .stack-section { display: grid; gap: 1.25rem; margin-top: 1rem; }
+  .stack-layer { display: grid; gap: .65rem; }
+  .stack-layer-label {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .core-card {
+    background: color-mix(in srgb, var(--card) 90%, var(--accent) 10%);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 1.35rem 1.45rem;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .core-card h3 { margin: 0 0 .35rem; font-size: 1.28rem; letter-spacing: -.01em; }
+  .core-card p { margin: 0; color: var(--muted); }
+  .core-card .subhead,
+  .evidence-card .subhead,
+  .workflow-card .subhead {
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: .25rem;
+  }
+  .evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .8rem;
+  }
+  .evidence-card {
     background: var(--card);
-    border: 1px solid var(--line);
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
     border-radius: 12px;
     padding: 1rem 1.1rem;
   }
-  .ecosystem-item h3 { margin: 0 0 .35rem; font-size: 1rem; }
-  .ecosystem-item p { margin: 0; font-size: .9rem; color: var(--muted); }
-  .ecosystem-item .subhead { color: var(--ink); font-weight: 600; margin-bottom: .25rem; }
+  .evidence-card h3 { margin: 0 0 .3rem; font-size: 1.02rem; }
+  .evidence-card p { margin: 0; font-size: .9rem; color: var(--muted); }
+  .workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .7rem;
+  }
+  .workflow-card {
+    background: color-mix(in srgb, var(--card) 94%, var(--bg) 6%);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: .85rem .9rem;
+  }
+  .workflow-card .workflow-label {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .workflow-card h3 { margin: 0 0 .25rem; font-size: .92rem; }
+  .workflow-card p { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--muted); }
+  .stack-closing-line {
+    margin: .25rem 0 0;
+    padding: 1rem 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--card) 92%, var(--accent) 8%);
+    color: var(--ink);
+    font-size: .98rem;
+    max-width: none;
+  }
+  @media (max-width: 780px) {
+    .workflow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .evidence-grid,
+    .workflow-grid { grid-template-columns: 1fr; }
+    .core-card { padding: 1.1rem; }
+  }
   .video-cta { margin-top: .7rem; font-size: .92rem; }
   footer { border-top: 1px solid var(--line); padding: 2rem 0 3rem; color: var(--muted); font-size: .82rem; }
   footer .links { display: flex; flex-wrap: wrap; gap: 1.1rem; margin-bottom: .9rem; }
@@ -239,6 +308,7 @@
     </p>
 
     <div class="cta">
+      <a class="btn ghost" href="https://youtu.be/AiOA1T25n5k" target="_blank" rel="noopener">▶ Watch the demo</a>
       <a class="btn primary" href="./sandbox/index.html">Try the sandbox</a>
       <a class="btn ghost" href="#local">Install and run locally</a>
     </div>
@@ -404,54 +474,77 @@ npm run demo:verifier</pre>
   </section>
 
   <section id="ecosystem">
-    <p class="kicker">Ecosystem</p>
-    <h2>One verification pattern, multiple applied workflows.</h2>
+    <p class="kicker">Verification stack</p>
+    <h2>One evidence stack, multiple applied workflows.</h2>
     <p class="section-lead">
-      These are not separate product claims. Every application below shares one discipline: a claim about
-      information is only trustworthy if it can be checked against the record it came from, not taken on
-      faith. Evidence travels in a portable package (ECO) that anyone can verify independently — outside
-      the system that produced it.
+      This is not a portfolio of separate products. Each workflow below applies the same control pattern
+      to a different kind of information: before a system acts on a claim, it must be able to verify where
+      that claim came from, what state it relied on, and whether that state changed.
     </p>
-    <div class="ecosystem-list">
-      <div class="ecosystem-item">
-        <h3><a href="#sandbox">Verifiable Memory MCP</a></h3>
-        <p class="subhead">Public reproducible technical demo — this site.</p>
-        <p>A local, tamper-evident memory layer that lets agents verify what they know before acting —
-        and stop when integrity fails. Install it from npm, tamper with it, verify it yourself.</p>
+    <div class="stack-section">
+      <div class="stack-layer">
+        <div class="stack-layer-label">Layer 01 - Core primitive</div>
+        <div class="core-card">
+          <h3><a href="#sandbox">Verifiable Memory MCP</a></h3>
+          <p class="subhead">Public primitive - reproducible and local.</p>
+          <p>A local, tamper-evident memory layer that lets agents verify what they know before acting -
+          and stop when integrity fails. Install it from npm, tamper with it, verify it yourself.</p>
+        </div>
       </div>
-      <div class="ecosystem-item">
-        <h3><a href="./verifier/index.html">ECO Evidence Package</a></h3>
-        <p class="subhead">Shared evidence packaging layer.</p>
-        <p>The bridge between memory, evidence, and verification: portable evidence packages that can be
-        checked independently, outside the original system, across workflows, devices, and operators.
-        The open verifier runs on this site.</p>
+
+      <div class="stack-layer">
+        <div class="stack-layer-label">Layer 02 - Evidence layer</div>
+        <div class="evidence-grid">
+          <div class="evidence-card">
+            <h3><a href="./verifier/index.html">ECO Evidence Package</a></h3>
+            <p class="subhead">Portable receipt.</p>
+            <p>Carries the evidence record, integrity state, decision metadata, and a human-readable report
+            so another party can check what happened outside the original system.</p>
+          </div>
+          <div class="evidence-card">
+            <h3><a href="./verifier/index.html">Browser Verifier</a></h3>
+            <p class="subhead">Independent check.</p>
+            <p>Lets anyone inspect an evidence package in the browser without trusting our backend, our
+            screen, or our claims. Verification stays separate from the workflow that produced the evidence.</p>
+          </div>
+        </div>
       </div>
-      <div class="ecosystem-item">
-        <h3><a href="https://ecosign.app">EcoSign</a></h3>
-        <p class="subhead">Commercial application in preparation.</p>
-        <p>Document and agreement workflows with verifiable evidence: integrity, export, and independent
-        verification for document-centered work. Open verifier source:
-        <a href="https://github.com/TemporalDynamics/ecosign-public">ecosign-public</a>.</p>
+
+      <div class="stack-layer">
+        <div class="stack-layer-label">Layer 03 - Applied workflows</div>
+        <div class="workflow-grid">
+          <div class="workflow-card">
+            <span class="workflow-label">Applied workflow</span>
+            <h3><a href="https://ecosign.app">EcoSign</a></h3>
+            <p class="subhead">Documents and agreements.</p>
+            <p>Evidence travels with document-centered workflows: integrity, export, and independent
+            verification for operational records.</p>
+          </div>
+          <div class="workflow-card">
+            <span class="workflow-label">Applied workflow</span>
+            <h3><a href="https://custodyart.vercel.app">CustodyArt</a></h3>
+            <p class="subhead">Provenance and custody.</p>
+            <p>Fingerprinting, witness, sealing, and exportable evidence for digital assets over time.</p>
+          </div>
+          <div class="workflow-card">
+            <span class="workflow-label">Roadmap workflow</span>
+            <h3><a href="https://with-gamma.vercel.app/">WITH</a></h3>
+            <p class="subhead">Personal verifiable memory.</p>
+            <p>AI assistant memory where answers can link back to the records that support them.</p>
+          </div>
+          <div class="workflow-card">
+            <span class="workflow-label">Controlled demo</span>
+            <h3><a href="https://talo-landing.vercel.app">Talo</a></h3>
+            <p class="subhead">Controlled recruiting demo.</p>
+            <p>Agents verify memory before acting, pause for owner approval, and stop when integrity fails.</p>
+          </div>
+        </div>
       </div>
-      <div class="ecosystem-item">
-        <h3><a href="https://custodyart.vercel.app">CustodyArt</a></h3>
-        <p class="subhead">Applied provenance and custody workflow.</p>
-        <p>Custody and evidence discipline for creative digital assets, where provenance and traceability
-        matter over time. Sealing flow live: upload, fingerprint, witness, exportable evidence.</p>
-      </div>
-      <div class="ecosystem-item">
-        <h3><a href="https://with-gamma.vercel.app/">WITH</a></h3>
-        <p class="subhead">Roadmap — personal verifiable memory.</p>
-        <p>The same evidence-first principle applied to personal memory for AI assistants: answers that
-        link back to the records that support them. In active development; core remains private.</p>
-      </div>
-      <div class="ecosystem-item">
-        <h3><a href="https://talo-landing.vercel.app">Talo</a></h3>
-        <p class="subhead">Applied agent workflow — controlled demo.</p>
-        <p>The same integrity-before-action pattern running inside a recruiting operations workflow:
-        agents verify memory before acting, pause for owner approval, and stop when integrity fails.
-        Private demo access — restricted.</p>
-      </div>
+
+      <p class="stack-closing-line">
+        The common unit is not the industry. The common unit is the claim: who made it, what record supports
+        it, what changed, and whether another party can verify it independently.
+      </p>
     </div>
   </section>
 

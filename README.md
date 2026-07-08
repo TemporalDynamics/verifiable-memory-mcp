@@ -2,7 +2,7 @@
 
 **Local-first, append-only, tamper-evident memory for AI agents.**
 
-**[→ Landing page](https://temporaldynamics.github.io/verifiable-memory-mcp/) · [→ Interactive sandbox](https://temporaldynamics.github.io/verifiable-memory-mcp/sandbox/) · [→ Evidence verifier](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)**
+**[→ Landing page](https://verifiablememorymcp.com/) · [→ Interactive sandbox](https://verifiablememorymcp.com/sandbox/) · [→ Evidence verifier](https://verifiablememorymcp.com/verifier/)**
 
 `verifiable-memory-mcp` is an MCP server for storing agent memory as a verifiable hash chain.
 
@@ -380,7 +380,7 @@ This public integrity layer is one focused building block inside a wider archite
 
 These are not separate product claims. Every application below shares one discipline: a claim about information is only trustworthy if it can be checked against the record it came from, not taken on faith. Evidence travels in a portable package (ECO) that anyone can verify independently — outside the system that produced it.
 
-### [ECO Evidence Package](https://temporaldynamics.github.io/verifiable-memory-mcp/verifier/)
+### [ECO Evidence Package](https://verifiablememorymcp.com/verifier/)
 
 Shared evidence packaging layer.
 

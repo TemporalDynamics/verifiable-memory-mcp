@@ -10,3 +10,5 @@ anchor-out/
 demo/evidence/latest.eco
 demo/evidence/latest.json
 demo/state.json
+.vercel
+.env*
