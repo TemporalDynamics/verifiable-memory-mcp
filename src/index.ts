@@ -11,6 +11,7 @@ import { verify } from "./tools/verify.js";
 import { chainData } from "./tools/chain.js";
 import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
+import { appendIfVerifiedHead } from "./tools/append-if-verified-head.js";
 
 const server = new Server(
   { name: "verifiable-memory-mcp", version: "0.1.2" },
@@ -131,6 +132,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         openWorldHint: false,
       },
     },
+    {
+      name: "append_if_verified_head",
+      description:
+        "Append a new memory entry only if the chain's verified current head matches expectedHead " +
+        "(pass null only for a genuinely empty chain). Verifies the full chain and the external " +
+        "witness before writing, inside one transaction — never a partial or head-only check.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          expectedHead: {
+            type: ["string", "null"],
+            description: "The entryHash the caller believes is the current head, or null for an empty chain",
+          },
+          content: { type: "string", description: "The memory content to store" },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional tags for categorization",
+          },
+        },
+        required: ["expectedHead", "content"],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
   ],
 }));
 
@@ -162,6 +192,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "export": {
         const { ids, limit } = args as { ids?: string[]; limit?: number };
         return exportEntries({ ids, limit });
+      }
+      case "append_if_verified_head": {
+        const { expectedHead, content, tags } = args as {
+          expectedHead: string | null;
+          content: string;
+          tags?: string[];
+        };
+        return appendIfVerifiedHead({ expectedHead, content, tags });
       }
       default:
         return {
