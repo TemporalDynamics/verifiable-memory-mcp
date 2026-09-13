@@ -94,13 +94,13 @@ function tamperContentInPlace(id: string, newContent: string): void {
 }
 
 /**
- * Simulates a sophisticated attacker with direct file access: rewrites one
- * row's content AND recomputes its own content_hash/entry_hash, then
- * propagates entry_hash/prev_hash forward through every later row so the
- * WHOLE chain is internally self-consistent again, ending at a NEW head
- * hash. The external witness (keychain) still holds the OLD head — it was
- * never touched, because touching it requires OS keychain access, a
- * separate boundary the attacker in this scenario does not have.
+ * Simulates an attacker with direct SQLite file access (but not keychain
+ * access, in this scenario): rewrites one row's content AND recomputes its
+ * own content_hash/entry_hash, then propagates entry_hash/prev_hash forward
+ * through every later row so the WHOLE chain is internally self-consistent
+ * again, ending at a NEW head hash. The external witness (keychain) still
+ * holds the OLD head, since this helper never touches it — this is what
+ * lets the test below exercise the witness_mismatch path specifically.
  */
 function rewriteChainFrom(tamperId: string, newContent: string): void {
   const raw = new Database(dbPath);
@@ -312,6 +312,27 @@ describe("insertEntryIfVerifiedHead — integrity_failure (no write occurs)", ()
     expect(result.status).toBe("integrity_failure");
     expect(result.integrityStatus).toBe("invalid_tags");
     expect(after.n).toBe(before.n);
+  });
+
+  it("a malformed expectedHead (not null, not a 64-char lowercase hex sha256) is rejected without touching the database", () => {
+    const malformed = ["not-a-hash", "DEADBEEF".repeat(8), "abc123", "a".repeat(63), "a".repeat(65), ""];
+    for (const expectedHead of malformed) {
+      const before = { n: rowCount() };
+      const result = mod.insertEntryIfVerifiedHead({ expectedHead, content: "should not write" });
+      const after = { n: rowCount() };
+
+      expect(result.ok, `expectedHead=${JSON.stringify(expectedHead)}`).toBe(false);
+      expect(result.status).toBe("integrity_failure");
+      expect(result.integrityStatus).toBe("invalid_expected_head");
+      expect(after.n).toBe(before.n);
+    }
+  });
+
+  it("a well-formed but wrong sha256 expectedHead is a conflict, not an integrity_failure — shape validity and correctness are different checks", () => {
+    const wellFormedButWrong = "0".repeat(64);
+    const result = mod.insertEntryIfVerifiedHead({ expectedHead: wellFormedButWrong, content: "one" });
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("conflict");
   });
 
   it("any failure before commit leaves zero new rows — generalized check across every blocking reason exercised above", () => {

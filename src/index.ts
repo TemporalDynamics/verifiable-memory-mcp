@@ -136,8 +136,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: "append_if_verified_head",
       description:
         "Append a new memory entry only if the chain's verified current head matches expectedHead " +
-        "(pass null only for a genuinely empty chain). Verifies the full chain and the external " +
-        "witness before writing, inside one transaction — never a partial or head-only check.",
+        "(pass null only for a genuinely empty chain). Verifies the full chain and an external " +
+        "witness stored outside SQLite before writing, inside one transaction. The witness detects " +
+        "rewrites confined to the database file; an attacker controlling the OS keychain or the host " +
+        "itself can compromise both. Content and its position in the chain are covered by the hash " +
+        "chain; tags are not authenticated and must not be used for security decisions.",
       inputSchema: {
         type: "object",
         properties: {

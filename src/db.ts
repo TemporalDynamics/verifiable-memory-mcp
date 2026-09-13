@@ -110,13 +110,23 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
  *   2. Compare the freshly re-derived head against the external witness
  *      (OS keychain) — a chain that was tampered with AND fully rewritten
  *      forward to stay internally self-consistent is still caught here,
- *      because the attacker cannot also silently rewrite the keychain.
+ *      as long as the witness itself was not also altered.
  *   3. Only then compare `expectedHead` against this verified head.
  *
  * All three steps run inside one `BEGIN IMMEDIATE` transaction (see
  * `.immediate()` below) — the write lock is held from before the first read
  * to after the insert, so no other writer can change what "the current
  * head" means between steps 1-3 and the actual INSERT.
+ *
+ * THREAT MODEL, stated precisely (do not overstate this elsewhere): the
+ * witness is stored outside SQLite and detects rewrites confined to the
+ * database file, under the threat model documented here. It is a second,
+ * independent surface an attacker must also alter to hide a rewrite — not
+ * a claim that doing so is impossible. An attacker with sufficient control
+ * of the user account, the OS keychain, or the operating system can
+ * compromise both surfaces. This function narrows the class of undetected
+ * tampering (a DB-only rewrite); it does not eliminate every attacker
+ * capable of controlling the whole host.
  *
  * SQLite and the OS keychain are never one atomic operation (see
  * persistStateRoot/verifyStateRoot above — the existing code already has
@@ -131,13 +141,24 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
  * available. This function's entire purpose is to be the stricter,
  * verified path — an operator who wants the unverified behavior already
  * has `remember`.
+ *
+ * WHAT THE HASH CHAIN COVERS, exactly (do not present this as covering
+ * every stored field): entry_hash is derived from content_hash, prev_hash,
+ * and created_at (see buildEntryCanonical in hashing.ts). `tags`, `id`, and
+ * the storage-only `created_epoch`/rowid are NOT part of that derivation —
+ * altering them in place is not detected by verifyChainStructurally. `tags`
+ * in particular are unauthenticated metadata in this schema (v0.2.1+
+ * insertEntryIfVerifiedHead) and must never be used for security or
+ * authorization decisions. A caller that needs stronger guarantees over
+ * data it considers authoritative should encode that data inside `content`
+ * itself, which the hash chain does cover.
  */
 export function insertEntryIfVerifiedHead(input: {
   readonly expectedHead: string | null;
   readonly content: string;
   readonly tags?: string[];
 }): ConditionalAppendResult {
-  const invalid = validateConditionalAppendInput(input.content, input.tags);
+  const invalid = validateConditionalAppendInput(input.expectedHead, input.content, input.tags);
   if (invalid) {
     return { ok: false, status: "integrity_failure", integrityStatus: invalid, committed: false };
   }
@@ -243,7 +264,13 @@ class IntegrityFailureSignal extends Error {
   }
 }
 
-function validateConditionalAppendInput(content: unknown, tags: unknown): ConditionalAppendIntegrityStatus | null {
+/** Lowercase hex, 64 characters — the exact shape sha256(...).digest("hex") always produces in this codebase. */
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+function validateConditionalAppendInput(expectedHead: unknown, content: unknown, tags: unknown): ConditionalAppendIntegrityStatus | null {
+  if (expectedHead !== null && (typeof expectedHead !== "string" || !SHA256_HEX.test(expectedHead))) {
+    return "invalid_expected_head";
+  }
   if (typeof content !== "string" || content.length === 0) return "invalid_content";
   if (tags !== undefined) {
     if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) return "invalid_tags";

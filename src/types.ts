@@ -2,6 +2,7 @@ export interface MemoryEntry {
   id: string;
   createdAt: string;
   content: string;
+  /** NOT covered by entryHash (see hashing.ts:buildEntryCanonical) — unauthenticated metadata. Never use for security or authorization decisions. */
   tags: string[];
   contentHash: string;
   prevHash: string | null;
@@ -33,6 +34,7 @@ export type ToolName = "remember" | "recall" | "verify" | "chain" | "timeline" |
  * against yet" — these are different failure classes with different causes.
  */
 export type ConditionalAppendIntegrityStatus =
+  | "invalid_expected_head"
   | "invalid_content"
   | "invalid_tags"
   | "chain_broken"
@@ -66,7 +68,17 @@ export type ConditionalAppendResult =
       readonly ok: true;
       readonly status: "appended";
       readonly previousHead: string | null;
+      /** The verifiable position — see newHead vs. sequence note below. */
       readonly newHead: string;
+      /**
+       * A local ordinal (SQLite's own rowid) — NOT cryptographically
+       * committed into the hash chain, NOT portable across a reconstructed
+       * or restored database (a restore replayed through a different insert
+       * order would assign different values), and never a substitute for
+       * `newHead` when a caller needs a verifiable position. Use it only for
+       * same-process/same-file ordering convenience, never as a security-
+       * relevant identifier.
+       */
       readonly sequence: number;
       readonly witnessStatus: "confirmed";
     }
