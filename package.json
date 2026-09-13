@@ -11,9 +11,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "clean": "node scripts/clean.mjs",
+    "sync-version": "node scripts/sync-version.mjs",
+    "build": "npm run clean && npm run sync-version && tsc",
+    "prepack": "npm run build",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "dev": "npm run sync-version && tsx src/index.ts",
     "test": "vitest run",
     "demo:reset": "bash demo/reset.sh",
     "demo:scenario:reset": "bash demo/reset.sh && node demo/setup.mjs",

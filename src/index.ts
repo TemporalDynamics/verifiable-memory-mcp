@@ -12,9 +12,10 @@ import { chainData } from "./tools/chain.js";
 import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
 import { appendIfVerifiedHead } from "./tools/append-if-verified-head.js";
+import { VERSION } from "./version.js";
 
 const server = new Server(
-  { name: "verifiable-memory-mcp", version: "0.1.2" },
+  { name: "verifiable-memory-mcp", version: VERSION },
   { capabilities: { tools: {} } }
 );
 

@@ -135,6 +135,27 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
  * returning either "appended" or "integrity_failure" when SQLite committed
  * but the keychain update afterward did not.
  *
+ * THE SQLITE-COMMIT-TO-WITNESS-UPDATE WINDOW, stated exactly: after this
+ * function's SQLite transaction commits (step G/H) and before its witness
+ * write (step I) completes, the two stores are transiently out of sync —
+ * SQLite already reflects the new head, the witness still reflects the
+ * previous one. A second, concurrent call from ANY process (this one or
+ * another) that reads during that exact window will observe this
+ * inconsistency and correctly fail closed with `witness_mismatch` — it is
+ * indistinguishable, from the checker's point of view, from a genuine
+ * tampering attempt, and is treated identically (blocked, nothing written).
+ * This means a losing contender racing against a winner may legitimately
+ * receive EITHER `conflict` (if it evaluates after the winner's witness
+ * write has completed) OR `integrity_failure`/`witness_mismatch` (if it
+ * evaluates inside the window) — both are safe, both write nothing, and
+ * this function never tries to tell them apart or paper over the
+ * difference. Once the winner's witness write completes, the window is
+ * closed for that append: SQLite and the witness agree again, and any
+ * further attempt with the now-stale expectedHead deterministically
+ * receives `conflict`. Two successful (`ok:true`) appends sharing the same
+ * expectedHead can never both occur — BEGIN IMMEDIATE guarantees at most
+ * one writer ever observes a given head as current.
+ *
  * Deliberately does NOT honor VMCP_SKIP_STATE_ROOT (unlike
  * insertEntryAtomic/verifyStateRoot): that flag exists so the existing,
  * less-strict `remember` path keeps working where a keychain isn't
