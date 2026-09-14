@@ -18,11 +18,11 @@
  * production code path is touched or aware of it; there is no test-only
  * branch inside src/**.
  *
- * Runs against the BUILT dist/db.js (a fresh `npm run build` in beforeAll),
- * so this exercises exactly what would ship, not a TS-transform-time copy.
+ * Runs against the BUILT dist/db.js (see test/global-setup.ts), so this
+ * exercises exactly what would ship, not a TS-transform-time copy.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
-import { spawn, execFileSync } from "node:child_process";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -67,11 +67,10 @@ let dir: string;
 let dataDir: string;
 let keychainPath: string;
 
-beforeAll(() => {
-  // Guarantees the worker processes run the exact code this change made,
-  // not a stale prior build.
-  execFileSync("npm", ["run", "build"], { cwd: repoRoot, stdio: "inherit" });
-}, 60_000);
+// No local rebuild here: test/global-setup.ts already builds once, before
+// any test file runs, so these workers always run against a fresh dist/db.js
+// (see vitest.config.ts's fileParallelism:false — no other file can race a
+// rebuild against this one).
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "vmcp-concurrency-test-"));

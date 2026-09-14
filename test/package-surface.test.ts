@@ -38,6 +38,8 @@ const ALLOWED_TOOL_FILES = new Set([
   "dist/tools/export.d.ts",
   "dist/tools/append-if-verified-head.js",
   "dist/tools/append-if-verified-head.d.ts",
+  "dist/tools/read-verified-snapshot.js",
+  "dist/tools/read-verified-snapshot.d.ts",
 ]);
 
 function packedFilePaths(): string[] {

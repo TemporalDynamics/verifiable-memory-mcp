@@ -4,7 +4,14 @@ import path from "node:path";
 import os from "node:os";
 import { mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { MemoryEntry, ConditionalAppendResult, ConditionalAppendIntegrityStatus } from "./types.js";
+import {
+  MemoryEntry,
+  ConditionalAppendResult,
+  ConditionalAppendIntegrityStatus,
+  ReadVerifiedSnapshotResult,
+  SnapshotIntegrityStatus,
+  VerifiedEntry,
+} from "./types.js";
 import { sha256, hashContent, hashEntry, buildEntryCanonical } from "./hashing.js";
 
 const DB_DIR = process.env.VMCP_DATA_DIR ?? path.join(os.homedir(), ".verifiable-memory-mcp");
@@ -198,7 +205,7 @@ export function insertEntryIfVerifiedHead(input: {
   }
 
   const txn = database.transaction((): TxResult => {
-    const observedHead = verifyChainStructurally(database);
+    const { headHash: observedHead } = verifyChainStructurally(database);
 
     const witnessFailure = verifyWitnessAgainst(observedHead);
     if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
@@ -270,6 +277,80 @@ export function insertEntryIfVerifiedHead(input: {
   };
 }
 
+/**
+ * readVerifiedSnapshot — a read-only, structurally verified view of the
+ * entire chain at one coherent moment.
+ *
+ * Shares verifyChainStructurally and verifyWitnessAgainst with
+ * insertEntryIfVerifiedHead (see that function's docstring for the full
+ * threat-model statement and the SQLite-commit-to-witness-update window —
+ * both apply identically here). Never writes or repairs anything. Never
+ * honors VMCP_SKIP_STATE_ROOT, for the same reason insertEntryIfVerifiedHead
+ * doesn't: this is the strict, verified path.
+ *
+ * Runs inside one `BEGIN DEFERRED` transaction (deferred, not immediate —
+ * this never writes, so it never needs a write-intent lock) so the full
+ * chain read and the witness check happen against one coherent view, with
+ * nothing else able to interleave between them from this function's own
+ * perspective. This does NOT make the read atomic with respect to the OS
+ * keychain (no such atomicity exists — see insertEntryIfVerifiedHead); it
+ * only means the SQL side of the check is a single consistent snapshot
+ * rather than multiple independent reads.
+ *
+ * On failure, returns no entries and no partial content — a caller must
+ * never receive data alongside a failure status that could be mistaken for
+ * verified.
+ *
+ * EXPLICIT LIMITS, not solved by this phase:
+ *   - O(n) in the number of entries, same trade-off as insertEntryIfVerifiedHead
+ *     (verifyChainStructurally re-hashes every entry every call).
+ *   - The full response can be large — there is no partial-inclusion proof
+ *     (e.g. a Merkle path for one entry) and no verifiable pagination yet;
+ *     a caller wanting one entry still gets the whole verified chain.
+ *   - `tags` and other stored-but-uncommitted metadata remain outside the
+ *     hash chain here exactly as in insertEntryIfVerifiedHead — this
+ *     function does not change what is or isn't authenticated.
+ *   - The witness protects against rewrites confined to SQLite; it does not
+ *     protect against an attacker with control of the OS keychain or the
+ *     host itself (see insertEntryIfVerifiedHead's THREAT MODEL section).
+ * None of these are addressed in this phase — scalability and partial
+ * proofs are explicitly out of scope here.
+ */
+export function readVerifiedSnapshot(): ReadVerifiedSnapshotResult {
+  const database = getDb();
+
+  const txn = database.transaction((): ChainVerificationResult => {
+    const verification = verifyChainStructurally(database);
+    const witnessFailure = verifyWitnessAgainst(verification.headHash);
+    if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
+    return verification;
+  });
+
+  let verification: ChainVerificationResult;
+  try {
+    verification = txn.deferred();
+  } catch (error) {
+    if (error instanceof IntegrityFailureSignal) {
+      // Narrowed at the type level: readVerifiedSnapshot never validates
+      // caller input, so IntegrityFailureSignal here can only ever carry
+      // one of the witness/chain reasons, never invalid_expected_head/
+      // invalid_content/invalid_tags (those are only thrown from
+      // validateConditionalAppendInput, which this function never calls).
+      return { ok: false, status: "integrity_failure", integrityStatus: error.integrityStatus as SnapshotIntegrityStatus };
+    }
+    throw error;
+  }
+
+  return {
+    ok: true,
+    status: "verified",
+    ledgerPosition: verification.headHash,
+    entries: verification.entries,
+    chainLength: verification.entries.length,
+    witnessStatus: verification.headHash === null ? "empty_chain" : "confirmed",
+  };
+}
+
 class ConflictSignal extends Error {
   constructor(
     public readonly expectedHead: string | null,
@@ -299,14 +380,32 @@ function validateConditionalAppendInput(expectedHead: unknown, content: unknown,
   return null;
 }
 
+interface ChainVerificationResult {
+  /** The verified head's entry_hash, or null for a genuinely empty chain. */
+  readonly headHash: string | null;
+  /**
+   * Genesis-to-head, in chain order. Already the PUBLIC-safe projection —
+   * this query never even selects `id`/`tags`/`created_epoch`/rowid, since
+   * none of them are part of what's verified (see VerifiedEntry in
+   * types.ts). Callers that need the full stored row (id/tags included) —
+   * currently only insertEntryIfVerifiedHead, which needs neither and
+   * ignores this field — must fetch it separately.
+   */
+  readonly entries: readonly VerifiedEntry[];
+}
+
 /**
  * Recomputes every entry's content_hash and entry_hash from its own stored
  * fields, and checks prev_hash linkage, from genesis to head — never trusts
- * a cached "latest" pointer. Returns the verified head's entry_hash, or
- * null for a genuinely empty chain. Throws IntegrityFailureSignal("chain_broken")
+ * a cached "latest" pointer. Throws IntegrityFailureSignal("chain_broken")
  * on the first row that doesn't check out.
+ *
+ * SHARED by insertEntryIfVerifiedHead and readVerifiedSnapshot — the CAS
+ * write path and the read-only snapshot path must never verify the chain by
+ * two different sets of rules. If this function's behavior ever needs to
+ * change, it changes for both at once.
  */
-function verifyChainStructurally(database: Database.Database): string | null {
+function verifyChainStructurally(database: Database.Database): ChainVerificationResult {
   const rows = database
     .prepare("SELECT content, content_hash, prev_hash, entry_hash, created_at FROM entries ORDER BY created_epoch ASC, rowid ASC")
     .all() as Array<{
@@ -318,14 +417,22 @@ function verifyChainStructurally(database: Database.Database): string | null {
   }>;
 
   let expectedPrev: string | null = null;
+  const entries: VerifiedEntry[] = [];
   for (const row of rows) {
     if (row.prev_hash !== expectedPrev) throw new IntegrityFailureSignal("chain_broken");
     if (hashContent(row.content) !== row.content_hash) throw new IntegrityFailureSignal("chain_broken");
     const recomputedEntryHash = hashEntry(buildEntryCanonical(row.content_hash, row.prev_hash, row.created_at));
     if (recomputedEntryHash !== row.entry_hash) throw new IntegrityFailureSignal("chain_broken");
+    entries.push({
+      content: row.content,
+      contentHash: row.content_hash,
+      prevHash: row.prev_hash,
+      entryHash: row.entry_hash,
+      createdAt: row.created_at,
+    });
     expectedPrev = row.entry_hash;
   }
-  return expectedPrev;
+  return { headHash: expectedPrev, entries };
 }
 
 /**

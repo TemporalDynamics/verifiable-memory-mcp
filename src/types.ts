@@ -24,7 +24,15 @@ export interface ExportBundle {
   entries: MemoryEntry[];
 }
 
-export type ToolName = "remember" | "recall" | "verify" | "chain" | "timeline" | "export" | "append_if_verified_head";
+export type ToolName =
+  | "remember"
+  | "recall"
+  | "verify"
+  | "chain"
+  | "timeline"
+  | "export"
+  | "append_if_verified_head"
+  | "read_verified_snapshot";
 
 /**
  * Why an integrity check inside insertEntryIfVerifiedHead refused to
@@ -101,6 +109,66 @@ export type ConditionalAppendResult =
       readonly previousHead: string | null;
       readonly newHead: string;
       readonly committed: true;
+    };
+
+/**
+ * The verifiable projection of one entry — exactly the fields entry_hash
+ * actually commits to (see hashing.ts:buildEntryCanonical), nothing more.
+ * Deliberately excludes `tags`, `id`, and the storage-only
+ * `created_epoch`/rowid: none of them are covered by the hash chain, and
+ * mixing them into what a caller might treat as "verified" would misstate
+ * what was actually checked. A caller that also wants the unauthenticated
+ * fields must fetch the full MemoryEntry separately (e.g. via getEntry) and
+ * keep the two clearly apart.
+ */
+export interface VerifiedEntry {
+  readonly content: string;
+  readonly contentHash: string;
+  readonly prevHash: string | null;
+  readonly entryHash: string;
+  readonly createdAt: string;
+}
+
+/** The subset of ConditionalAppendIntegrityStatus that a pure read (no input to validate) can ever produce. */
+export type SnapshotIntegrityStatus = Extract<
+  ConditionalAppendIntegrityStatus,
+  "chain_broken" | "witness_missing" | "witness_unavailable" | "witness_mismatch" | "witness_unexpected_when_empty"
+>;
+
+/**
+ * Result of readVerifiedSnapshot — a read-only, point-in-time view of the
+ * chain, structurally verified against the external witness before being
+ * returned. On failure, returns NO entries and NO partial content — never
+ * hand back potentially-untrustworthy data alongside a failure status.
+ *
+ * TEMPORAL SEMANTICS, stated exactly (do not oversell this elsewhere): this
+ * snapshot is coherent as of the position it was read at (`ledgerPosition`).
+ * It is NOT a claim about being "the current" state after the fact — by the
+ * time a caller acts on it, a concurrent writer may already have appended
+ * past it. A verified-and-then-stale snapshot is expected, normal, and safe
+ * — the guarantee this function makes is about what it observed, not about
+ * what remains true afterward. Safety comes from pairing this with
+ * append_if_verified_head afterward (passing `ledgerPosition` as
+ * `expectedHead`): if anything wrote in between, that CAS call fails
+ * (`conflict`) rather than silently overwriting. Never treat a successful
+ * snapshot alone as a freshness guarantee, and never add automatic retries
+ * here — a caller that needs the CURRENT state after a conflict should call
+ * this function again, explicitly.
+ */
+export type ReadVerifiedSnapshotResult =
+  | {
+      readonly ok: true;
+      readonly status: "verified";
+      /** Pass this back as `expectedHead` to append_if_verified_head. Null only for a genuinely empty chain. */
+      readonly ledgerPosition: string | null;
+      readonly entries: readonly VerifiedEntry[];
+      readonly chainLength: number;
+      readonly witnessStatus: "confirmed" | "empty_chain";
+    }
+  | {
+      readonly ok: false;
+      readonly status: "integrity_failure";
+      readonly integrityStatus: SnapshotIntegrityStatus;
     };
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";

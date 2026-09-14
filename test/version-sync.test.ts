@@ -5,18 +5,16 @@
  * scripts/sync-version.mjs (run by both `build` and `dev`), and index.ts
  * imports VERSION from it rather than declaring a literal.
  */
-import { describe, it, expect, beforeAll } from "vitest";
-import { execFileSync } from "node:child_process";
+import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-beforeAll(() => {
-  execFileSync("npm", ["run", "build"], { cwd: repoRoot, stdio: "pipe" });
-}, 60_000);
-
+// No local rebuild here: test/global-setup.ts already builds once, before
+// any test file runs (see vitest.config.ts's fileParallelism:false — no
+// other file can race a rebuild against this one).
 describe("server version stays in sync with package.json", () => {
   it("dist/version.js's exported VERSION matches package.json's version", async () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf-8"));

@@ -12,6 +12,7 @@ import { chainData } from "./tools/chain.js";
 import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
 import { appendIfVerifiedHead } from "./tools/append-if-verified-head.js";
+import { readVerifiedSnapshotTool } from "./tools/read-verified-snapshot.js";
 import { VERSION } from "./version.js";
 
 const server = new Server(
@@ -165,6 +166,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         openWorldHint: false,
       },
     },
+    {
+      name: "read_verified_snapshot",
+      description:
+        "Return the full chain, structurally verified against an external witness stored outside " +
+        "SQLite, as of one coherent moment. Never writes or repairs anything; fails closed (no entries " +
+        "returned) if the chain or the witness do not check out. This snapshot is coherent as of the " +
+        "position it reports (ledgerPosition), not a claim about being the state 'as of now' by the " +
+        "time a caller acts on it — pass ledgerPosition as expectedHead to append_if_verified_head " +
+        "afterward so a write in between is rejected rather than silently overwritten. Returned entries " +
+        "include only what the hash chain covers (content, contentHash, prevHash, entryHash, " +
+        "createdAt) — tags and entry ids are not part of this projection and are not authenticated.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
   ],
 }));
 
@@ -204,6 +227,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           tags?: string[];
         };
         return appendIfVerifiedHead({ expectedHead, content, tags });
+      }
+      case "read_verified_snapshot": {
+        return readVerifiedSnapshotTool();
       }
       default:
         return {
