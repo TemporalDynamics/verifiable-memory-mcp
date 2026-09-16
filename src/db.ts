@@ -74,7 +74,7 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const getLatest = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY rowid DESC LIMIT 1"
   );
 
   const run = database.transaction(() => {
@@ -685,7 +685,7 @@ export function searchEntriesFlexible(query: string, limit = 20): MemoryEntry[] 
 export function getLatestEntry(): MemoryEntry | undefined {
   const database = getDb();
   const row = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY rowid DESC LIMIT 1"
   ).get() as Record<string, unknown> | undefined;
   if (!row) return undefined;
   return rowToEntry(row);
@@ -694,7 +694,7 @@ export function getLatestEntry(): MemoryEntry | undefined {
 export function getChain(limit = 100): MemoryEntry[] {
   const database = getDb();
   const rows = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch ASC, rowid ASC LIMIT ?"
+    "SELECT * FROM entries ORDER BY rowid ASC LIMIT ?"
   ).all(limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }

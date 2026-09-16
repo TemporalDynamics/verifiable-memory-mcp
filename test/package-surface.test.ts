@@ -9,7 +9,7 @@
  * this file is ever made public on its own, since it says nothing about
  * what it is guarding against, only what belongs.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -53,14 +53,18 @@ function isAllowed(path: string): boolean {
 }
 
 describe("npm package surface", () => {
+  let files: string[];
+
+  beforeAll(() => {
+    files = packedFilePaths();
+  }, 30000);
+
   it("ships only files on the explicit allowlist", () => {
-    const files = packedFilePaths();
     const unexpected = files.filter((f) => !isAllowed(f));
     expect(unexpected).toEqual([]);
   });
 
   it("dist/tools/ contains only the known, published MCP tools", () => {
-    const files = packedFilePaths();
     const toolFiles = files.filter((f) => f.startsWith("dist/tools/"));
     const unexpected = toolFiles.filter((f) => !ALLOWED_TOOL_FILES.has(f));
     expect(unexpected).toEqual([]);
@@ -71,12 +75,10 @@ describe("npm package surface", () => {
   });
 
   it("no sourcemaps ship (would make dist trivially reversible to annotated source)", () => {
-    const files = packedFilePaths();
     expect(files.filter((f) => f.endsWith(".map"))).toEqual([]);
   });
 
   it("no test, source, or local development files ship", () => {
-    const files = packedFilePaths();
     const disallowedPrefixes = ["src/", "test/", "demo/", "docs/", "verifier/", "sandbox/", ".vercel/"];
     const offenders = files.filter((f) => disallowedPrefixes.some((prefix) => f.startsWith(prefix)));
     expect(offenders).toEqual([]);

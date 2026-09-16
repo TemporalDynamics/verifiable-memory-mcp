@@ -8,7 +8,7 @@
  * fake-keyring-loader.mjs) — this is a deliberate guard against this file
  * ever being loaded silently outside an explicit test harness.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
 const STORE_PATH = process.env.VMCP_TEST_FAKE_KEYCHAIN_PATH;
@@ -29,8 +29,11 @@ function readStore() {
 }
 
 function writeStore(store) {
-  mkdirSync(dirname(STORE_PATH), { recursive: true });
-  writeFileSync(STORE_PATH, JSON.stringify(store));
+  const dir = dirname(STORE_PATH);
+  mkdirSync(dir, { recursive: true });
+  const tmpPath = `${STORE_PATH}.tmp.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  writeFileSync(tmpPath, JSON.stringify(store));
+  renameSync(tmpPath, STORE_PATH);
 }
 
 export class Entry {

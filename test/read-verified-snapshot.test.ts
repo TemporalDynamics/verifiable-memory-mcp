@@ -23,8 +23,10 @@ let failNextSetPassword: boolean;
 let mod: {
   insertEntryIfVerifiedHead: (a: { expectedHead: string | null; content: string; tags?: string[] }) => any;
   readVerifiedSnapshot: (q?: any) => any;
+  insertEntryAtomic: (buildEntry: (prevHash: string | null) => any) => any;
 };
 let snapshotTool: (q?: any) => any;
+let rememberTool: (a: { content: string; tags?: string[] }) => any;
 
 function sha256(s: string): string {
   return createHash("sha256").update(s, "utf-8").digest("hex");
@@ -61,9 +63,18 @@ async function loadModules(): Promise<void> {
     },
   }));
 
-  const [db, snapshot] = await Promise.all([import("../src/db.js"), import("../src/tools/read-verified-snapshot.js")]);
-  mod = { insertEntryIfVerifiedHead: db.insertEntryIfVerifiedHead, readVerifiedSnapshot: db.readVerifiedSnapshot };
+  const [db, snapshot, rem] = await Promise.all([
+    import("../src/db.js"),
+    import("../src/tools/read-verified-snapshot.js"),
+    import("../src/tools/remember.js"),
+  ]);
+  mod = {
+    insertEntryIfVerifiedHead: db.insertEntryIfVerifiedHead,
+    readVerifiedSnapshot: db.readVerifiedSnapshot,
+    insertEntryAtomic: db.insertEntryAtomic,
+  };
   snapshotTool = snapshot.readVerifiedSnapshotTool;
+  rememberTool = rem.remember;
 }
 
 /** Simulates direct tampering of one row's content, leaving content_hash/entry_hash stale. */
@@ -549,5 +560,34 @@ describe("read_verified_snapshot — MCP tool wiring", () => {
     expect(badQuery.isError).toBe(true);
     expect(parsedBad.status).toBe("integrity_failure");
     expect(parsedBad.integrityStatus).toBe("invalid_limit");
+  });
+
+  it("28. remember (insertEntryAtomic) correctly links to append_if_verified_head head even when clock moves backward", () => {
+    const mem1 = rememberTool({ content: "genesis memory" });
+    expect(mem1.isError).toBeFalsy();
+
+    const snap1 = mod.readVerifiedSnapshot();
+    expect(snap1.ok).toBe(true);
+    const app = mod.insertEntryIfVerifiedHead({
+      expectedHead: snap1.ledgerPosition,
+      content: "verified append",
+    });
+    expect(app.ok).toBe(true);
+
+    // Artificially modify created_epoch of the verified append row to be in the past
+    const raw = new Database(dbPath);
+    raw.prepare("UPDATE entries SET created_epoch = 500 WHERE entry_hash = ?").run(app.newHead);
+
+    // Next remember tool call must link to app.newHead (the highest rowid), NOT genesis memory
+    const mem2 = rememberTool({ content: "subsequent memory" });
+    expect(mem2.isError).toBeFalsy();
+
+    // Verify that the chain is completely continuous and unbroken
+    const snap2 = mod.readVerifiedSnapshot();
+    expect(snap2.ok).toBe(true);
+    expect(snap2.chainLength).toBe(3);
+    expect(snap2.entries[1].entryHash).toBe(app.newHead);
+    expect(snap2.entries[2].prevHash).toBe(app.newHead);
+    expect(snap2.ledgerPosition).toBe(snap2.entries[2].entryHash);
   });
 });
