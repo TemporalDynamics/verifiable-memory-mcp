@@ -182,6 +182,18 @@ describe("Real MCP stdio transport — full protocol verification", () => {
     expect(conflict.status).toBe("snapshot_conflict");
     expect(conflict.expectedSnapshotHead).toBe(head1);
     expect(conflict.observedHead).toBe(head3);
+
+    // 9. Snapshot conflict when pinning expectedSnapshotHead: null on non-empty ledger
+    const nullConflictRaw = await client.callTool({
+      name: "read_verified_snapshot",
+      arguments: { expectedSnapshotHead: null },
+    });
+    const nullConflict = parseText(nullConflictRaw);
+    expect(nullConflictRaw.isError).toBe(true);
+    expect(nullConflict.ok).toBe(false);
+    expect(nullConflict.status).toBe("snapshot_conflict");
+    expect(nullConflict.expectedSnapshotHead).toBeNull();
+    expect(nullConflict.observedHead).toBe(head3);
   });
 
   it("maintains compatibility of all six pre-existing public tools over stdio transport", async () => {

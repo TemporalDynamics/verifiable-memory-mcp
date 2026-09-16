@@ -330,7 +330,7 @@ export function readVerifiedSnapshot(query?: ReadVerifiedSnapshotQuery): ReadVer
     const witnessFailure = verifyWitnessAgainst(verification.headHash);
     if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
 
-    if (query?.expectedSnapshotHead !== undefined && query.expectedSnapshotHead !== null) {
+    if (query?.expectedSnapshotHead !== undefined) {
       if (query.expectedSnapshotHead !== verification.headHash) {
         throw new SnapshotConflictSignal(query.expectedSnapshotHead, verification.headHash);
       }
@@ -472,7 +472,7 @@ interface ChainVerificationResult {
  */
 function verifyChainStructurally(database: Database.Database): ChainVerificationResult {
   const rows = database
-    .prepare("SELECT content, content_hash, prev_hash, entry_hash, created_at FROM entries ORDER BY created_epoch ASC, rowid ASC")
+    .prepare("SELECT content, content_hash, prev_hash, entry_hash, created_at FROM entries ORDER BY rowid ASC")
     .all() as Array<{
     content: string;
     content_hash: string;

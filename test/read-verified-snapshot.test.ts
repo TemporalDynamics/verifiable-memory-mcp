@@ -410,10 +410,70 @@ describe("readVerifiedSnapshot — pagination and head pinning", () => {
     expect(wayBeyond.entries).toEqual([]);
     expect(wayBeyond.nextSequence).toBeNull();
   });
+
+  it("20. returns snapshot_conflict when expectedSnapshotHead is null but ledger already has entries", () => {
+    // 1. Read or assume empty snapshot
+    const initial = mod.readVerifiedSnapshot({ expectedSnapshotHead: null });
+    expect(initial.ok).toBe(true);
+    expect(initial.ledgerPosition).toBeNull();
+
+    // 2. Insert genesis
+    const genesis = mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "genesis item" });
+    expect(genesis.ok).toBe(true);
+
+    // 3. Invoke read_verified_snapshot with expectedSnapshotHead: null
+    const res = mod.readVerifiedSnapshot({ expectedSnapshotHead: null });
+
+    // 4. Expect snapshot_conflict with expectedSnapshotHead: null and observedHead equal to genesis hash
+    expect(res.ok).toBe(false);
+    expect(res.status).toBe("snapshot_conflict");
+    expect(res.expectedSnapshotHead).toBeNull();
+    expect(res.observedHead).toBe(genesis.newHead);
+
+    // Also verify MCP tool returns the same conflict
+    const toolRes = snapshotTool({ expectedSnapshotHead: null });
+    expect(toolRes.isError).toBe(true);
+    const parsedTool = JSON.parse(toolRes.content[0].text);
+    expect(parsedTool.status).toBe("snapshot_conflict");
+    expect(parsedTool.expectedSnapshotHead).toBeNull();
+    expect(parsedTool.observedHead).toBe(genesis.newHead);
+  });
+
+  it("21. succeeds with expectedSnapshotHead: null when ledger is genuinely empty", () => {
+    const emptySnap = mod.readVerifiedSnapshot({ expectedSnapshotHead: null });
+    expect(emptySnap.ok).toBe(true);
+    expect(emptySnap.status).toBe("verified");
+    expect(emptySnap.historyId).toBeNull();
+    expect(emptySnap.ledgerPosition).toBeNull();
+    expect(emptySnap.entries).toEqual([]);
+    expect(emptySnap.chainLength).toBe(0);
+  });
+
+  it("22. derives chain order from stable rowid insertion order even if wall-clock created_epoch moves backward", () => {
+    const first = mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "first" });
+    expect(first.ok).toBe(true);
+
+    const second = mod.insertEntryIfVerifiedHead({ expectedHead: first.newHead, content: "second" });
+    expect(second.ok).toBe(true);
+
+    // Artificially modify created_epoch of second row to be earlier than first row
+    // while keeping rowid, prev_hash, and content intact
+    const raw = new Database(dbPath);
+    raw.prepare("UPDATE entries SET created_epoch = 1000 WHERE entry_hash = ?").run(second.newHead);
+    raw.prepare("UPDATE entries SET created_epoch = 2000 WHERE entry_hash = ?").run(first.newHead);
+
+    // readVerifiedSnapshot should still order by rowid ASC and succeed without chain_broken
+    const snap = mod.readVerifiedSnapshot();
+    expect(snap.ok).toBe(true);
+    expect(snap.entries.length).toBe(2);
+    expect(snap.entries[0].entryHash).toBe(first.newHead);
+    expect(snap.entries[1].entryHash).toBe(second.newHead);
+    expect(snap.ledgerPosition).toBe(second.newHead);
+  });
 });
 
 describe("readVerifiedSnapshot — query input validation", () => {
-  it("20. rejects invalid expectedSnapshotHead (non-hex, bad length)", () => {
+  it("23. rejects invalid expectedSnapshotHead (non-hex, bad length)", () => {
     const badLength = mod.readVerifiedSnapshot({ expectedSnapshotHead: "abc" });
     expect(badLength.ok).toBe(false);
     expect(badLength.status).toBe("integrity_failure");
@@ -425,7 +485,7 @@ describe("readVerifiedSnapshot — query input validation", () => {
     expect(nonHex.integrityStatus).toBe("invalid_expected_snapshot_head");
   });
 
-  it("21. rejects invalid afterSequence (negative, float, non-number)", () => {
+  it("24. rejects invalid afterSequence (negative, float, non-number)", () => {
     const negative = mod.readVerifiedSnapshot({ afterSequence: -1 });
     expect(negative.ok).toBe(false);
     expect(negative.status).toBe("integrity_failure");
@@ -442,7 +502,7 @@ describe("readVerifiedSnapshot — query input validation", () => {
     expect(stringSeq.integrityStatus).toBe("invalid_after_sequence");
   });
 
-  it("22. rejects invalid limit (zero, negative, float)", () => {
+  it("25. rejects invalid limit (zero, negative, float)", () => {
     const zero = mod.readVerifiedSnapshot({ limit: 0 });
     expect(zero.ok).toBe(false);
     expect(zero.status).toBe("integrity_failure");
@@ -461,7 +521,7 @@ describe("readVerifiedSnapshot — query input validation", () => {
 });
 
 describe("read_verified_snapshot — MCP tool wiring", () => {
-  it("23. the tool never exposes stack traces or keychain internals, on success or failure", () => {
+  it("26. the tool never exposes stack traces or keychain internals, on success or failure", () => {
     mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "one" });
 
     const ok = snapshotTool();
@@ -476,7 +536,7 @@ describe("read_verified_snapshot — MCP tool wiring", () => {
     expect(failedText).not.toMatch(/at Object\.|\.ts:\d+:\d+|node_modules|Entry\(|getPassword|setPassword/);
   });
 
-  it("24. passes query parameters through to readVerifiedSnapshot and surfaces errors cleanly", () => {
+  it("27. passes query parameters through to readVerifiedSnapshot and surfaces errors cleanly", () => {
     mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "item-1" });
     const res = snapshotTool({ limit: 1 });
     const parsed = JSON.parse(res.content[0].text);
