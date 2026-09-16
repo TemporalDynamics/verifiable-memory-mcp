@@ -179,7 +179,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         "createdAt) — tags and entry ids are not part of this projection and are not authenticated.",
       inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+          afterSequence: {
+            type: ["number", "null"],
+            description: "Optional 0-based sequence index to paginate after. If omitted or null, returns from genesis.",
+          },
+          limit: {
+            type: "number",
+            description: "Optional maximum number of entries to return (default 1000, must be positive safe integer).",
+          },
+          expectedSnapshotHead: {
+            type: ["string", "null"],
+            description: "Optional expected head entryHash to pin the snapshot. Returns snapshot_conflict if the head changed.",
+          },
+        },
       },
       annotations: {
         readOnlyHint: true,
@@ -229,7 +242,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return appendIfVerifiedHead({ expectedHead, content, tags });
       }
       case "read_verified_snapshot": {
-        return readVerifiedSnapshotTool();
+        const { afterSequence, limit, expectedSnapshotHead } = (args ?? {}) as {
+          afterSequence?: number | null;
+          limit?: number;
+          expectedSnapshotHead?: string | null;
+        };
+        return readVerifiedSnapshotTool({ afterSequence, limit, expectedSnapshotHead });
       }
       default:
         return {

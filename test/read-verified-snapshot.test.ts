@@ -22,9 +22,9 @@ let failNextSetPassword: boolean;
 
 let mod: {
   insertEntryIfVerifiedHead: (a: { expectedHead: string | null; content: string; tags?: string[] }) => any;
-  readVerifiedSnapshot: () => any;
+  readVerifiedSnapshot: (q?: any) => any;
 };
-let snapshotTool: () => any;
+let snapshotTool: (q?: any) => any;
 
 function sha256(s: string): string {
   return createHash("sha256").update(s, "utf-8").digest("hex");
@@ -258,7 +258,8 @@ describe("readVerifiedSnapshot — projection excludes unauthenticated fields", 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const entry = result.entries[0];
-    expect(Object.keys(entry).sort()).toEqual(["content", "contentHash", "createdAt", "entryHash", "prevHash"].sort());
+    expect(Object.keys(entry).sort()).toEqual(["content", "contentHash", "createdAt", "entryHash", "prevHash", "sequence"].sort());
+    expect(entry.sequence).toBe(0);
     expect(entry.tags).toBeUndefined();
     expect(entry.id).toBeUndefined();
     expect((entry as any).created_epoch).toBeUndefined();
@@ -306,8 +307,161 @@ describe("readVerifiedSnapshot — no regression to append_if_verified_head", ()
   });
 });
 
+describe("readVerifiedSnapshot — historyId and sequence semantics", () => {
+  it("15. historyId is null for empty ledger and matches genesis entryHash for all subsequent states", () => {
+    const empty = mod.readVerifiedSnapshot();
+    expect(empty.ok).toBe(true);
+    expect(empty.historyId).toBeNull();
+
+    const first = mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "genesis entry" });
+    const snap1 = mod.readVerifiedSnapshot();
+    expect(snap1.ok).toBe(true);
+    expect(snap1.historyId).toBe(first.newHead);
+
+    const second = mod.insertEntryIfVerifiedHead({ expectedHead: first.newHead, content: "second entry" });
+    const snap2 = mod.readVerifiedSnapshot();
+    expect(snap2.ok).toBe(true);
+    expect(snap2.historyId).toBe(first.newHead);
+    expect(snap2.ledgerPosition).toBe(second.newHead);
+  });
+
+  it("16. sequence numbers are consecutive 0-based monotonic integers matching append sequence", () => {
+    const a = mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "a" });
+    expect(a.sequence).toBe(0);
+    const b = mod.insertEntryIfVerifiedHead({ expectedHead: a.newHead, content: "b" });
+    expect(b.sequence).toBe(1);
+    const c = mod.insertEntryIfVerifiedHead({ expectedHead: b.newHead, content: "c" });
+    expect(c.sequence).toBe(2);
+
+    const snapshot = mod.readVerifiedSnapshot();
+    expect(snapshot.ok).toBe(true);
+    expect(snapshot.entries.map((e: any) => e.sequence)).toEqual([0, 1, 2]);
+    expect(snapshot.chainLength).toBe(3);
+    expect(snapshot.nextSequence).toBeNull();
+  });
+});
+
+describe("readVerifiedSnapshot — pagination and head pinning", () => {
+  it("17. paginates cleanly across multiple pages with nextSequence and identical concatenated content", () => {
+    const hashes: string[] = [];
+    let prev: string | null = null;
+    for (let i = 0; i < 5; i++) {
+      const res = mod.insertEntryIfVerifiedHead({ expectedHead: prev, content: `entry-${i}` });
+      hashes.push(res.newHead);
+      prev = res.newHead;
+    }
+
+    const full = mod.readVerifiedSnapshot();
+    expect(full.ok).toBe(true);
+    expect(full.entries.length).toBe(5);
+
+    // Page 1: limit 2, afterSequence omitted
+    const p1 = mod.readVerifiedSnapshot({ limit: 2, expectedSnapshotHead: prev });
+    expect(p1.ok).toBe(true);
+    expect(p1.entries.map((e: any) => e.sequence)).toEqual([0, 1]);
+    expect(p1.nextSequence).toBe(1);
+    expect(p1.chainLength).toBe(5);
+
+    // Page 2: limit 2, afterSequence 1
+    const p2 = mod.readVerifiedSnapshot({ limit: 2, afterSequence: p1.nextSequence, expectedSnapshotHead: prev });
+    expect(p2.ok).toBe(true);
+    expect(p2.entries.map((e: any) => e.sequence)).toEqual([2, 3]);
+    expect(p2.nextSequence).toBe(3);
+    expect(p2.chainLength).toBe(5);
+
+    // Page 3: limit 2, afterSequence 3
+    const p3 = mod.readVerifiedSnapshot({ limit: 2, afterSequence: p2.nextSequence, expectedSnapshotHead: prev });
+    expect(p3.ok).toBe(true);
+    expect(p3.entries.map((e: any) => e.sequence)).toEqual([4]);
+    expect(p3.nextSequence).toBeNull();
+    expect(p3.chainLength).toBe(5);
+
+    const concatenated = [...p1.entries, ...p2.entries, ...p3.entries];
+    expect(concatenated).toEqual(full.entries);
+  });
+
+  it("18. returns snapshot_conflict when expectedSnapshotHead does not match observed head during pagination", () => {
+    const a = mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "page 1 base" });
+    const p1 = mod.readVerifiedSnapshot({ limit: 1 });
+    expect(p1.ok).toBe(true);
+    expect(p1.ledgerPosition).toBe(a.newHead);
+
+    // Head advances concurrently before page 2
+    const b = mod.insertEntryIfVerifiedHead({ expectedHead: a.newHead, content: "concurrent advance" });
+
+    // Requesting page 2 with pinned head `a.newHead` must detect the conflict
+    const p2 = mod.readVerifiedSnapshot({ limit: 1, afterSequence: 0, expectedSnapshotHead: a.newHead });
+    expect(p2.ok).toBe(false);
+    expect(p2.status).toBe("snapshot_conflict");
+    expect(p2.expectedSnapshotHead).toBe(a.newHead);
+    expect(p2.observedHead).toBe(b.newHead);
+  });
+
+  it("19. requesting afterSequence at or beyond chain head returns empty entries with nextSequence null", () => {
+    mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "only entry" });
+    const beyond = mod.readVerifiedSnapshot({ afterSequence: 0 });
+    expect(beyond.ok).toBe(true);
+    expect(beyond.entries).toEqual([]);
+    expect(beyond.nextSequence).toBeNull();
+    expect(beyond.chainLength).toBe(1);
+
+    const wayBeyond = mod.readVerifiedSnapshot({ afterSequence: 10 });
+    expect(wayBeyond.ok).toBe(true);
+    expect(wayBeyond.entries).toEqual([]);
+    expect(wayBeyond.nextSequence).toBeNull();
+  });
+});
+
+describe("readVerifiedSnapshot — query input validation", () => {
+  it("20. rejects invalid expectedSnapshotHead (non-hex, bad length)", () => {
+    const badLength = mod.readVerifiedSnapshot({ expectedSnapshotHead: "abc" });
+    expect(badLength.ok).toBe(false);
+    expect(badLength.status).toBe("integrity_failure");
+    expect(badLength.integrityStatus).toBe("invalid_expected_snapshot_head");
+
+    const nonHex = mod.readVerifiedSnapshot({ expectedSnapshotHead: "z".repeat(64) });
+    expect(nonHex.ok).toBe(false);
+    expect(nonHex.status).toBe("integrity_failure");
+    expect(nonHex.integrityStatus).toBe("invalid_expected_snapshot_head");
+  });
+
+  it("21. rejects invalid afterSequence (negative, float, non-number)", () => {
+    const negative = mod.readVerifiedSnapshot({ afterSequence: -1 });
+    expect(negative.ok).toBe(false);
+    expect(negative.status).toBe("integrity_failure");
+    expect(negative.integrityStatus).toBe("invalid_after_sequence");
+
+    const float = mod.readVerifiedSnapshot({ afterSequence: 1.5 });
+    expect(float.ok).toBe(false);
+    expect(float.status).toBe("integrity_failure");
+    expect(float.integrityStatus).toBe("invalid_after_sequence");
+
+    const stringSeq = mod.readVerifiedSnapshot({ afterSequence: "0" as any });
+    expect(stringSeq.ok).toBe(false);
+    expect(stringSeq.status).toBe("integrity_failure");
+    expect(stringSeq.integrityStatus).toBe("invalid_after_sequence");
+  });
+
+  it("22. rejects invalid limit (zero, negative, float)", () => {
+    const zero = mod.readVerifiedSnapshot({ limit: 0 });
+    expect(zero.ok).toBe(false);
+    expect(zero.status).toBe("integrity_failure");
+    expect(zero.integrityStatus).toBe("invalid_limit");
+
+    const negative = mod.readVerifiedSnapshot({ limit: -5 });
+    expect(negative.ok).toBe(false);
+    expect(negative.status).toBe("integrity_failure");
+    expect(negative.integrityStatus).toBe("invalid_limit");
+
+    const float = mod.readVerifiedSnapshot({ limit: 2.2 });
+    expect(float.ok).toBe(false);
+    expect(float.status).toBe("integrity_failure");
+    expect(float.integrityStatus).toBe("invalid_limit");
+  });
+});
+
 describe("read_verified_snapshot — MCP tool wiring", () => {
-  it("15. the tool never exposes stack traces or keychain internals, on success or failure", () => {
+  it("23. the tool never exposes stack traces or keychain internals, on success or failure", () => {
     mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "one" });
 
     const ok = snapshotTool();
@@ -320,5 +474,20 @@ describe("read_verified_snapshot — MCP tool wiring", () => {
     const failedText = JSON.stringify(JSON.parse(failed.content[0].text));
     expect(failed.isError).toBe(true);
     expect(failedText).not.toMatch(/at Object\.|\.ts:\d+:\d+|node_modules|Entry\(|getPassword|setPassword/);
+  });
+
+  it("24. passes query parameters through to readVerifiedSnapshot and surfaces errors cleanly", () => {
+    mod.insertEntryIfVerifiedHead({ expectedHead: null, content: "item-1" });
+    const res = snapshotTool({ limit: 1 });
+    const parsed = JSON.parse(res.content[0].text);
+    expect(res.isError).toBeFalsy();
+    expect(parsed.ok).toBe(true);
+    expect(parsed.entries.length).toBe(1);
+
+    const badQuery = snapshotTool({ limit: -1 });
+    const parsedBad = JSON.parse(badQuery.content[0].text);
+    expect(badQuery.isError).toBe(true);
+    expect(parsedBad.status).toBe("integrity_failure");
+    expect(parsedBad.integrityStatus).toBe("invalid_limit");
   });
 });

@@ -1,5 +1,5 @@
 import { readVerifiedSnapshot } from "../db.js";
-import { ToolResponse } from "../types.js";
+import { ReadVerifiedSnapshotQuery, ToolResponse } from "../types.js";
 
 /**
  * read_verified_snapshot — a read-only, structurally verified view of the
@@ -10,8 +10,8 @@ import { ToolResponse } from "../types.js";
  * Never exposes keychain internals or stack traces — only the discriminated
  * ReadVerifiedSnapshotResult fields.
  */
-export function readVerifiedSnapshotTool(): ToolResponse {
-  const result = readVerifiedSnapshot();
+export function readVerifiedSnapshotTool(query?: ReadVerifiedSnapshotQuery): ToolResponse {
+  const result = readVerifiedSnapshot(query);
 
   return {
     content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

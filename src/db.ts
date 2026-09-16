@@ -8,6 +8,7 @@ import {
   MemoryEntry,
   ConditionalAppendResult,
   ConditionalAppendIntegrityStatus,
+  ReadVerifiedSnapshotQuery,
   ReadVerifiedSnapshotResult,
   SnapshotIntegrityStatus,
   VerifiedEntry,
@@ -205,7 +206,7 @@ export function insertEntryIfVerifiedHead(input: {
   }
 
   const txn = database.transaction((): TxResult => {
-    const { headHash: observedHead } = verifyChainStructurally(database);
+    const { headHash: observedHead, entries: verifiedEntries } = verifyChainStructurally(database);
 
     const witnessFailure = verifyWitnessAgainst(observedHead);
     if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
@@ -220,7 +221,7 @@ export function insertEntryIfVerifiedHead(input: {
     const canonical = buildEntryCanonical(contentHash, observedHead, createdAt);
     const entryHash = hashEntry(canonical);
 
-    const info = insert.run(
+    insert.run(
       id,
       createdAt,
       input.content,
@@ -233,7 +234,7 @@ export function insertEntryIfVerifiedHead(input: {
 
     return {
       entry: { id, createdAt, content: input.content, tags, contentHash, prevHash: observedHead, entryHash },
-      sequence: Number(info.lastInsertRowid),
+      sequence: verifiedEntries.length,
       previousHead: observedHead,
     };
   });
@@ -246,7 +247,7 @@ export function insertEntryIfVerifiedHead(input: {
       return { ok: false, status: "conflict", expectedHead: error.expectedHead, observedHead: error.observedHead, committed: false };
     }
     if (error instanceof IntegrityFailureSignal) {
-      return { ok: false, status: "integrity_failure", integrityStatus: error.integrityStatus, committed: false };
+      return { ok: false, status: "integrity_failure", integrityStatus: error.integrityStatus as ConditionalAppendIntegrityStatus, committed: false };
     }
     throw error;
   }
@@ -316,13 +317,25 @@ export function insertEntryIfVerifiedHead(input: {
  * None of these are addressed in this phase — scalability and partial
  * proofs are explicitly out of scope here.
  */
-export function readVerifiedSnapshot(): ReadVerifiedSnapshotResult {
+export function readVerifiedSnapshot(query?: ReadVerifiedSnapshotQuery): ReadVerifiedSnapshotResult {
+  const invalid = validateReadVerifiedSnapshotQuery(query);
+  if (invalid) {
+    return { ok: false, status: "integrity_failure", integrityStatus: invalid };
+  }
+
   const database = getDb();
 
   const txn = database.transaction((): ChainVerificationResult => {
     const verification = verifyChainStructurally(database);
     const witnessFailure = verifyWitnessAgainst(verification.headHash);
     if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
+
+    if (query?.expectedSnapshotHead !== undefined && query.expectedSnapshotHead !== null) {
+      if (query.expectedSnapshotHead !== verification.headHash) {
+        throw new SnapshotConflictSignal(query.expectedSnapshotHead, verification.headHash);
+      }
+    }
+
     return verification;
   });
 
@@ -330,24 +343,47 @@ export function readVerifiedSnapshot(): ReadVerifiedSnapshotResult {
   try {
     verification = txn.deferred();
   } catch (error) {
+    if (error instanceof SnapshotConflictSignal) {
+      return {
+        ok: false,
+        status: "snapshot_conflict",
+        expectedSnapshotHead: error.expectedSnapshotHead,
+        observedHead: error.observedHead,
+      };
+    }
     if (error instanceof IntegrityFailureSignal) {
-      // Narrowed at the type level: readVerifiedSnapshot never validates
-      // caller input, so IntegrityFailureSignal here can only ever carry
-      // one of the witness/chain reasons, never invalid_expected_head/
-      // invalid_content/invalid_tags (those are only thrown from
-      // validateConditionalAppendInput, which this function never calls).
-      return { ok: false, status: "integrity_failure", integrityStatus: error.integrityStatus as SnapshotIntegrityStatus };
+      return {
+        ok: false,
+        status: "integrity_failure",
+        integrityStatus: error.integrityStatus as SnapshotIntegrityStatus,
+      };
     }
     throw error;
   }
 
+  const allEntries = verification.entries;
+  const chainLength = allEntries.length;
+  const historyId = chainLength > 0 ? allEntries[0].entryHash : null;
+  const ledgerPosition = verification.headHash;
+  const witnessStatus = ledgerPosition === null ? "empty_chain" : "confirmed";
+
+  const effectiveLimit = query?.limit !== undefined && query.limit !== null ? query.limit : 1000;
+  const startIndex = query?.afterSequence !== undefined && query.afterSequence !== null ? query.afterSequence + 1 : 0;
+  const pageEntries = allEntries.slice(startIndex, startIndex + effectiveLimit);
+  const nextSequence =
+    startIndex + pageEntries.length < chainLength && pageEntries.length > 0
+      ? pageEntries[pageEntries.length - 1].sequence
+      : null;
+
   return {
     ok: true,
     status: "verified",
-    ledgerPosition: verification.headHash,
-    entries: verification.entries,
-    chainLength: verification.entries.length,
-    witnessStatus: verification.headHash === null ? "empty_chain" : "confirmed",
+    historyId,
+    ledgerPosition,
+    entries: pageEntries,
+    chainLength,
+    nextSequence,
+    witnessStatus,
   };
 }
 
@@ -360,14 +396,43 @@ class ConflictSignal extends Error {
   }
 }
 
+class SnapshotConflictSignal extends Error {
+  constructor(
+    public readonly expectedSnapshotHead: string | null,
+    public readonly observedHead: string | null
+  ) {
+    super("snapshot_conflict");
+  }
+}
+
 class IntegrityFailureSignal extends Error {
-  constructor(public readonly integrityStatus: ConditionalAppendIntegrityStatus) {
+  constructor(public readonly integrityStatus: ConditionalAppendIntegrityStatus | SnapshotIntegrityStatus) {
     super("conditional_append_integrity_failure");
   }
 }
 
 /** Lowercase hex, 64 characters — the exact shape sha256(...).digest("hex") always produces in this codebase. */
 const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+function validateReadVerifiedSnapshotQuery(query?: ReadVerifiedSnapshotQuery): SnapshotIntegrityStatus | null {
+  if (!query) return null;
+  if (query.expectedSnapshotHead !== undefined && query.expectedSnapshotHead !== null) {
+    if (typeof query.expectedSnapshotHead !== "string" || !SHA256_HEX.test(query.expectedSnapshotHead)) {
+      return "invalid_expected_snapshot_head";
+    }
+  }
+  if (query.afterSequence !== undefined && query.afterSequence !== null) {
+    if (typeof query.afterSequence !== "number" || !Number.isSafeInteger(query.afterSequence) || query.afterSequence < 0) {
+      return "invalid_after_sequence";
+    }
+  }
+  if (query.limit !== undefined && query.limit !== null) {
+    if (typeof query.limit !== "number" || !Number.isSafeInteger(query.limit) || query.limit <= 0) {
+      return "invalid_limit";
+    }
+  }
+  return null;
+}
 
 function validateConditionalAppendInput(expectedHead: unknown, content: unknown, tags: unknown): ConditionalAppendIntegrityStatus | null {
   if (expectedHead !== null && (typeof expectedHead !== "string" || !SHA256_HEX.test(expectedHead))) {
@@ -418,12 +483,14 @@ function verifyChainStructurally(database: Database.Database): ChainVerification
 
   let expectedPrev: string | null = null;
   const entries: VerifiedEntry[] = [];
-  for (const row of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]!;
     if (row.prev_hash !== expectedPrev) throw new IntegrityFailureSignal("chain_broken");
     if (hashContent(row.content) !== row.content_hash) throw new IntegrityFailureSignal("chain_broken");
     const recomputedEntryHash = hashEntry(buildEntryCanonical(row.content_hash, row.prev_hash, row.created_at));
     if (recomputedEntryHash !== row.entry_hash) throw new IntegrityFailureSignal("chain_broken");
     entries.push({
+      sequence: i,
       content: row.content,
       contentHash: row.content_hash,
       prevHash: row.prev_hash,

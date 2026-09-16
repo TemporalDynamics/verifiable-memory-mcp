@@ -79,13 +79,10 @@ export type ConditionalAppendResult =
       /** The verifiable position — see newHead vs. sequence note below. */
       readonly newHead: string;
       /**
-       * A local ordinal (SQLite's own rowid) — NOT cryptographically
-       * committed into the hash chain, NOT portable across a reconstructed
-       * or restored database (a restore replayed through a different insert
-       * order would assign different values), and never a substitute for
-       * `newHead` when a caller needs a verifiable position. Use it only for
-       * same-process/same-file ordering convenience, never as a security-
-       * relevant identifier.
+       * Monotonic 0-based sequence index from genesis within the structurally
+       * verified chain (0 for genesis, 1 for second, etc.) — assigned
+       * deterministically within the verified transaction, matching
+       * VerifiedEntry.sequence in readVerifiedSnapshot.
        */
       readonly sequence: number;
       readonly witnessStatus: "confirmed";
@@ -122,6 +119,8 @@ export type ConditionalAppendResult =
  * keep the two clearly apart.
  */
 export interface VerifiedEntry {
+  /** 0-based monotonic sequence index from genesis within the structurally verified chain. */
+  readonly sequence: number;
   readonly content: string;
   readonly contentHash: string;
   readonly prevHash: string | null;
@@ -129,11 +128,21 @@ export interface VerifiedEntry {
   readonly createdAt: string;
 }
 
-/** The subset of ConditionalAppendIntegrityStatus that a pure read (no input to validate) can ever produce. */
-export type SnapshotIntegrityStatus = Extract<
-  ConditionalAppendIntegrityStatus,
-  "chain_broken" | "witness_missing" | "witness_unavailable" | "witness_mismatch" | "witness_unexpected_when_empty"
->;
+export interface ReadVerifiedSnapshotQuery {
+  readonly afterSequence?: number | null;
+  readonly limit?: number;
+  readonly expectedSnapshotHead?: string | null;
+}
+
+/** The subset of integrity failure reasons readVerifiedSnapshot can produce. */
+export type SnapshotIntegrityStatus =
+  | Extract<
+      ConditionalAppendIntegrityStatus,
+      "chain_broken" | "witness_missing" | "witness_unavailable" | "witness_mismatch" | "witness_unexpected_when_empty"
+    >
+  | "invalid_expected_snapshot_head"
+  | "invalid_after_sequence"
+  | "invalid_limit";
 
 /**
  * Result of readVerifiedSnapshot — a read-only, point-in-time view of the
@@ -159,11 +168,20 @@ export type ReadVerifiedSnapshotResult =
   | {
       readonly ok: true;
       readonly status: "verified";
-      /** Pass this back as `expectedHead` to append_if_verified_head. Null only for a genuinely empty chain. */
+      /** Genesis entryHash for a non-empty verified chain; null only for a genuinely empty chain. */
+      readonly historyId: string | null;
+      /** Pass this back as `expectedHead` to append_if_verified_head or `expectedSnapshotHead` to paginate. Null only for a genuinely empty chain. */
       readonly ledgerPosition: string | null;
       readonly entries: readonly VerifiedEntry[];
       readonly chainLength: number;
+      readonly nextSequence: number | null;
       readonly witnessStatus: "confirmed" | "empty_chain";
+    }
+  | {
+      readonly ok: false;
+      readonly status: "snapshot_conflict";
+      readonly expectedSnapshotHead: string | null;
+      readonly observedHead: string | null;
     }
   | {
       readonly ok: false;
