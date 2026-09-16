@@ -11,9 +11,12 @@ import { verify } from "./tools/verify.js";
 import { chainData } from "./tools/chain.js";
 import { timeline } from "./tools/timeline.js";
 import { exportEntries } from "./tools/export.js";
+import { appendIfVerifiedHead } from "./tools/append-if-verified-head.js";
+import { readVerifiedSnapshotTool } from "./tools/read-verified-snapshot.js";
+import { VERSION } from "./version.js";
 
 const server = new Server(
-  { name: "verifiable-memory-mcp", version: "0.1.2" },
+  { name: "verifiable-memory-mcp", version: VERSION },
   { capabilities: { tools: {} } }
 );
 
@@ -131,6 +134,73 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         openWorldHint: false,
       },
     },
+    {
+      name: "append_if_verified_head",
+      description:
+        "Append a new memory entry only if the chain's verified current head matches expectedHead " +
+        "(pass null only for a genuinely empty chain). Verifies the full chain and an external " +
+        "witness stored outside SQLite before writing, inside one transaction. The witness detects " +
+        "rewrites confined to the database file; an attacker controlling the OS keychain or the host " +
+        "itself can compromise both. Content and its position in the chain are covered by the hash " +
+        "chain; tags are not authenticated and must not be used for security decisions.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          expectedHead: {
+            type: ["string", "null"],
+            description: "The entryHash the caller believes is the current head, or null for an empty chain",
+          },
+          content: { type: "string", description: "The memory content to store" },
+          tags: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional tags for categorization",
+          },
+        },
+        required: ["expectedHead", "content"],
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    {
+      name: "read_verified_snapshot",
+      description:
+        "Return the full chain, structurally verified against an external witness stored outside " +
+        "SQLite, as of one coherent moment. Never writes or repairs anything; fails closed (no entries " +
+        "returned) if the chain or the witness do not check out. This snapshot is coherent as of the " +
+        "position it reports (ledgerPosition), not a claim about being the state 'as of now' by the " +
+        "time a caller acts on it — pass ledgerPosition as expectedHead to append_if_verified_head " +
+        "afterward so a write in between is rejected rather than silently overwritten. Returned entries " +
+        "include only what the hash chain covers (content, contentHash, prevHash, entryHash, " +
+        "createdAt) — tags and entry ids are not part of this projection and are not authenticated.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          afterSequence: {
+            type: ["number", "null"],
+            description: "Optional 0-based sequence index to paginate after. If omitted or null, returns from genesis.",
+          },
+          limit: {
+            type: "number",
+            description: "Optional maximum number of entries to return (default 1000, must be positive safe integer).",
+          },
+          expectedSnapshotHead: {
+            type: ["string", "null"],
+            description: "Optional expected head entryHash to pin the snapshot. Returns snapshot_conflict if the head changed.",
+          },
+        },
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
   ],
 }));
 
@@ -162,6 +232,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "export": {
         const { ids, limit } = args as { ids?: string[]; limit?: number };
         return exportEntries({ ids, limit });
+      }
+      case "append_if_verified_head": {
+        const { expectedHead, content, tags } = args as {
+          expectedHead: string | null;
+          content: string;
+          tags?: string[];
+        };
+        return appendIfVerifiedHead({ expectedHead, content, tags });
+      }
+      case "read_verified_snapshot": {
+        const { afterSequence, limit, expectedSnapshotHead } = (args ?? {}) as {
+          afterSequence?: number | null;
+          limit?: number;
+          expectedSnapshotHead?: string | null;
+        };
+        return readVerifiedSnapshotTool({ afterSequence, limit, expectedSnapshotHead });
       }
       default:
         return {

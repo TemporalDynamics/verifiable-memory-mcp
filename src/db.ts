@@ -3,8 +3,17 @@ import { Entry } from "@napi-rs/keyring";
 import path from "node:path";
 import os from "node:os";
 import { mkdirSync } from "node:fs";
-import { MemoryEntry } from "./types.js";
-import { sha256 } from "./hashing.js";
+import { randomUUID } from "node:crypto";
+import {
+  MemoryEntry,
+  ConditionalAppendResult,
+  ConditionalAppendIntegrityStatus,
+  ReadVerifiedSnapshotQuery,
+  ReadVerifiedSnapshotResult,
+  SnapshotIntegrityStatus,
+  VerifiedEntry,
+} from "./types.js";
+import { sha256, hashContent, hashEntry, buildEntryCanonical } from "./hashing.js";
 
 const DB_DIR = process.env.VMCP_DATA_DIR ?? path.join(os.homedir(), ".verifiable-memory-mcp");
 const DB_PATH = path.join(DB_DIR, "memory.db");
@@ -30,6 +39,11 @@ export function getDb(): Database.Database {
     mkdirSync(DB_DIR, { recursive: true });
     db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");
+    // Generic hygiene, independent of any one caller: without this, a
+    // second process contending for the write lock (e.g. two
+    // insertEntryIfVerifiedHead callers, see below) gets an immediate
+    // SQLITE_BUSY instead of a short, bounded wait.
+    db.pragma("busy_timeout = 5000");
     migrate(db);
   }
   return db;
@@ -60,7 +74,7 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const getLatest = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY rowid DESC LIMIT 1"
   );
 
   const run = database.transaction(() => {
@@ -83,6 +97,436 @@ export function insertEntryAtomic(buildEntry: (prevHash: string | null) => Memor
   const entry = run();
   persistStateRoot(entry.entryHash);
   return entry;
+}
+
+/**
+ * insertEntryIfVerifiedHead — a verified, compare-and-swap append.
+ *
+ * Unlike insertEntryAtomic (which trusts the DB's own last-row pointer),
+ * this function re-derives the current head from first principles, inside
+ * the SAME write transaction as the insert it may perform:
+ *
+ *   1. Walk the ENTIRE chain (verifyChainStructurally) recomputing every
+ *      row's content_hash/entry_hash and checking prev_hash linkage.
+ *      Checking only the head hash would miss a row in the MIDDLE of the
+ *      chain whose stored `content` was altered in place while that row's
+ *      own content_hash/entry_hash were left untouched — the head hash
+ *      would still validate against the (unchanged) latest row's own
+ *      fields, silently passing over the tampered row. Full verification is
+ *      O(n) in the number of entries; this is a deliberate, documented
+ *      trade-off in exchange for not producing exactly that false negative.
+ *   2. Compare the freshly re-derived head against the external witness
+ *      (OS keychain) — a chain that was tampered with AND fully rewritten
+ *      forward to stay internally self-consistent is still caught here,
+ *      as long as the witness itself was not also altered.
+ *   3. Only then compare `expectedHead` against this verified head.
+ *
+ * All three steps run inside one `BEGIN IMMEDIATE` transaction (see
+ * `.immediate()` below) — the write lock is held from before the first read
+ * to after the insert, so no other writer can change what "the current
+ * head" means between steps 1-3 and the actual INSERT.
+ *
+ * THREAT MODEL, stated precisely (do not overstate this elsewhere): the
+ * witness is stored outside SQLite and detects rewrites confined to the
+ * database file, under the threat model documented here. It is a second,
+ * independent surface an attacker must also alter to hide a rewrite — not
+ * a claim that doing so is impossible. An attacker with sufficient control
+ * of the user account, the OS keychain, or the operating system can
+ * compromise both surfaces. This function narrows the class of undetected
+ * tampering (a DB-only rewrite); it does not eliminate every attacker
+ * capable of controlling the whole host.
+ *
+ * SQLite and the OS keychain are never one atomic operation (see
+ * persistStateRoot/verifyStateRoot above — the existing code already has
+ * this same boundary). This function does not pretend otherwise: it
+ * reports `committed_but_witness_unconfirmed` rather than silently
+ * returning either "appended" or "integrity_failure" when SQLite committed
+ * but the keychain update afterward did not.
+ *
+ * THE SQLITE-COMMIT-TO-WITNESS-UPDATE WINDOW, stated exactly: after this
+ * function's SQLite transaction commits (step G/H) and before its witness
+ * write (step I) completes, the two stores are transiently out of sync —
+ * SQLite already reflects the new head, the witness still reflects the
+ * previous one. A second, concurrent call from ANY process (this one or
+ * another) that reads during that exact window will observe this
+ * inconsistency and correctly fail closed with `witness_mismatch` — it is
+ * indistinguishable, from the checker's point of view, from a genuine
+ * tampering attempt, and is treated identically (blocked, nothing written).
+ * This means a losing contender racing against a winner may legitimately
+ * receive EITHER `conflict` (if it evaluates after the winner's witness
+ * write has completed) OR `integrity_failure`/`witness_mismatch` (if it
+ * evaluates inside the window) — both are safe, both write nothing, and
+ * this function never tries to tell them apart or paper over the
+ * difference. Once the winner's witness write completes, the window is
+ * closed for that append: SQLite and the witness agree again, and any
+ * further attempt with the now-stale expectedHead deterministically
+ * receives `conflict`. Two successful (`ok:true`) appends sharing the same
+ * expectedHead can never both occur — BEGIN IMMEDIATE guarantees at most
+ * one writer ever observes a given head as current.
+ *
+ * Deliberately does NOT honor VMCP_SKIP_STATE_ROOT (unlike
+ * insertEntryAtomic/verifyStateRoot): that flag exists so the existing,
+ * less-strict `remember` path keeps working where a keychain isn't
+ * available. This function's entire purpose is to be the stricter,
+ * verified path — an operator who wants the unverified behavior already
+ * has `remember`.
+ *
+ * WHAT THE HASH CHAIN COVERS, exactly (do not present this as covering
+ * every stored field): entry_hash is derived from content_hash, prev_hash,
+ * and created_at (see buildEntryCanonical in hashing.ts). `tags`, `id`, and
+ * the storage-only `created_epoch`/rowid are NOT part of that derivation —
+ * altering them in place is not detected by verifyChainStructurally. `tags`
+ * in particular are unauthenticated metadata in this schema (v0.2.1+
+ * insertEntryIfVerifiedHead) and must never be used for security or
+ * authorization decisions. A caller that needs stronger guarantees over
+ * data it considers authoritative should encode that data inside `content`
+ * itself, which the hash chain does cover.
+ */
+export function insertEntryIfVerifiedHead(input: {
+  readonly expectedHead: string | null;
+  readonly content: string;
+  readonly tags?: string[];
+}): ConditionalAppendResult {
+  const invalid = validateConditionalAppendInput(input.expectedHead, input.content, input.tags);
+  if (invalid) {
+    return { ok: false, status: "integrity_failure", integrityStatus: invalid, committed: false };
+  }
+  const tags = input.tags ?? [];
+  const database = getDb();
+
+  const insert = database.prepare(`
+    INSERT INTO entries (id, created_at, content, tags, content_hash, prev_hash, entry_hash, created_epoch)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  interface TxResult {
+    entry: MemoryEntry;
+    sequence: number;
+    previousHead: string | null;
+  }
+
+  const txn = database.transaction((): TxResult => {
+    const { headHash: observedHead, entries: verifiedEntries } = verifyChainStructurally(database);
+
+    const witnessFailure = verifyWitnessAgainst(observedHead);
+    if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
+
+    if (input.expectedHead !== observedHead) {
+      throw new ConflictSignal(input.expectedHead, observedHead);
+    }
+
+    const id = `mem_${randomUUID().slice(0, 8)}`;
+    const createdAt = new Date().toISOString();
+    const contentHash = hashContent(input.content);
+    const canonical = buildEntryCanonical(contentHash, observedHead, createdAt);
+    const entryHash = hashEntry(canonical);
+
+    insert.run(
+      id,
+      createdAt,
+      input.content,
+      JSON.stringify(tags),
+      contentHash,
+      observedHead,
+      entryHash,
+      new Date(createdAt).getTime()
+    );
+
+    return {
+      entry: { id, createdAt, content: input.content, tags, contentHash, prevHash: observedHead, entryHash },
+      sequence: verifiedEntries.length,
+      previousHead: observedHead,
+    };
+  });
+
+  let txResult: TxResult;
+  try {
+    txResult = txn.immediate();
+  } catch (error) {
+    if (error instanceof ConflictSignal) {
+      return { ok: false, status: "conflict", expectedHead: error.expectedHead, observedHead: error.observedHead, committed: false };
+    }
+    if (error instanceof IntegrityFailureSignal) {
+      return { ok: false, status: "integrity_failure", integrityStatus: error.integrityStatus as ConditionalAppendIntegrityStatus, committed: false };
+    }
+    throw error;
+  }
+
+  // SQLite has committed — everything from here on is about confirming that
+  // externally, never about whether the write itself happened (it did).
+  try {
+    stateRootEntry().setPassword(txResult.entry.entryHash);
+    stateRootUnavailable = false;
+  } catch (error) {
+    warnStateRootFailure("write", error);
+    return {
+      ok: false,
+      status: "committed_but_witness_unconfirmed",
+      previousHead: txResult.previousHead,
+      newHead: txResult.entry.entryHash,
+      committed: true,
+    };
+  }
+
+  return {
+    ok: true,
+    status: "appended",
+    previousHead: txResult.previousHead,
+    newHead: txResult.entry.entryHash,
+    sequence: txResult.sequence,
+    witnessStatus: "confirmed",
+  };
+}
+
+/**
+ * readVerifiedSnapshot — a read-only, structurally verified view of the
+ * entire chain at one coherent moment.
+ *
+ * Shares verifyChainStructurally and verifyWitnessAgainst with
+ * insertEntryIfVerifiedHead (see that function's docstring for the full
+ * threat-model statement and the SQLite-commit-to-witness-update window —
+ * both apply identically here). Never writes or repairs anything. Never
+ * honors VMCP_SKIP_STATE_ROOT, for the same reason insertEntryIfVerifiedHead
+ * doesn't: this is the strict, verified path.
+ *
+ * Runs inside one `BEGIN DEFERRED` transaction (deferred, not immediate —
+ * this never writes, so it never needs a write-intent lock) so the full
+ * chain read and the witness check happen against one coherent view, with
+ * nothing else able to interleave between them from this function's own
+ * perspective. This does NOT make the read atomic with respect to the OS
+ * keychain (no such atomicity exists — see insertEntryIfVerifiedHead); it
+ * only means the SQL side of the check is a single consistent snapshot
+ * rather than multiple independent reads.
+ *
+ * On failure, returns no entries and no partial content — a caller must
+ * never receive data alongside a failure status that could be mistaken for
+ * verified.
+ *
+ * EXPLICIT LIMITS, not solved by this phase:
+ *   - O(n) in the number of entries, same trade-off as insertEntryIfVerifiedHead
+ *     (verifyChainStructurally re-hashes every entry every call).
+ *   - The full response can be large — there is no partial-inclusion proof
+ *     (e.g. a Merkle path for one entry) and no verifiable pagination yet;
+ *     a caller wanting one entry still gets the whole verified chain.
+ *   - `tags` and other stored-but-uncommitted metadata remain outside the
+ *     hash chain here exactly as in insertEntryIfVerifiedHead — this
+ *     function does not change what is or isn't authenticated.
+ *   - The witness protects against rewrites confined to SQLite; it does not
+ *     protect against an attacker with control of the OS keychain or the
+ *     host itself (see insertEntryIfVerifiedHead's THREAT MODEL section).
+ * None of these are addressed in this phase — scalability and partial
+ * proofs are explicitly out of scope here.
+ */
+export function readVerifiedSnapshot(query?: ReadVerifiedSnapshotQuery): ReadVerifiedSnapshotResult {
+  const invalid = validateReadVerifiedSnapshotQuery(query);
+  if (invalid) {
+    return { ok: false, status: "integrity_failure", integrityStatus: invalid };
+  }
+
+  const database = getDb();
+
+  const txn = database.transaction((): ChainVerificationResult => {
+    const verification = verifyChainStructurally(database);
+    const witnessFailure = verifyWitnessAgainst(verification.headHash);
+    if (witnessFailure) throw new IntegrityFailureSignal(witnessFailure);
+
+    if (query?.expectedSnapshotHead !== undefined) {
+      if (query.expectedSnapshotHead !== verification.headHash) {
+        throw new SnapshotConflictSignal(query.expectedSnapshotHead, verification.headHash);
+      }
+    }
+
+    return verification;
+  });
+
+  let verification: ChainVerificationResult;
+  try {
+    verification = txn.deferred();
+  } catch (error) {
+    if (error instanceof SnapshotConflictSignal) {
+      return {
+        ok: false,
+        status: "snapshot_conflict",
+        expectedSnapshotHead: error.expectedSnapshotHead,
+        observedHead: error.observedHead,
+      };
+    }
+    if (error instanceof IntegrityFailureSignal) {
+      return {
+        ok: false,
+        status: "integrity_failure",
+        integrityStatus: error.integrityStatus as SnapshotIntegrityStatus,
+      };
+    }
+    throw error;
+  }
+
+  const allEntries = verification.entries;
+  const chainLength = allEntries.length;
+  const historyId = chainLength > 0 ? allEntries[0].entryHash : null;
+  const ledgerPosition = verification.headHash;
+  const witnessStatus = ledgerPosition === null ? "empty_chain" : "confirmed";
+
+  const effectiveLimit = query?.limit !== undefined && query.limit !== null ? query.limit : 1000;
+  const startIndex = query?.afterSequence !== undefined && query.afterSequence !== null ? query.afterSequence + 1 : 0;
+  const pageEntries = allEntries.slice(startIndex, startIndex + effectiveLimit);
+  const nextSequence =
+    startIndex + pageEntries.length < chainLength && pageEntries.length > 0
+      ? pageEntries[pageEntries.length - 1].sequence
+      : null;
+
+  return {
+    ok: true,
+    status: "verified",
+    historyId,
+    ledgerPosition,
+    entries: pageEntries,
+    chainLength,
+    nextSequence,
+    witnessStatus,
+  };
+}
+
+class ConflictSignal extends Error {
+  constructor(
+    public readonly expectedHead: string | null,
+    public readonly observedHead: string | null
+  ) {
+    super("conditional_append_conflict");
+  }
+}
+
+class SnapshotConflictSignal extends Error {
+  constructor(
+    public readonly expectedSnapshotHead: string | null,
+    public readonly observedHead: string | null
+  ) {
+    super("snapshot_conflict");
+  }
+}
+
+class IntegrityFailureSignal extends Error {
+  constructor(public readonly integrityStatus: ConditionalAppendIntegrityStatus | SnapshotIntegrityStatus) {
+    super("conditional_append_integrity_failure");
+  }
+}
+
+/** Lowercase hex, 64 characters — the exact shape sha256(...).digest("hex") always produces in this codebase. */
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+function validateReadVerifiedSnapshotQuery(query?: ReadVerifiedSnapshotQuery): SnapshotIntegrityStatus | null {
+  if (!query) return null;
+  if (query.expectedSnapshotHead !== undefined && query.expectedSnapshotHead !== null) {
+    if (typeof query.expectedSnapshotHead !== "string" || !SHA256_HEX.test(query.expectedSnapshotHead)) {
+      return "invalid_expected_snapshot_head";
+    }
+  }
+  if (query.afterSequence !== undefined && query.afterSequence !== null) {
+    if (typeof query.afterSequence !== "number" || !Number.isSafeInteger(query.afterSequence) || query.afterSequence < 0) {
+      return "invalid_after_sequence";
+    }
+  }
+  if (query.limit !== undefined && query.limit !== null) {
+    if (typeof query.limit !== "number" || !Number.isSafeInteger(query.limit) || query.limit <= 0) {
+      return "invalid_limit";
+    }
+  }
+  return null;
+}
+
+function validateConditionalAppendInput(expectedHead: unknown, content: unknown, tags: unknown): ConditionalAppendIntegrityStatus | null {
+  if (expectedHead !== null && (typeof expectedHead !== "string" || !SHA256_HEX.test(expectedHead))) {
+    return "invalid_expected_head";
+  }
+  if (typeof content !== "string" || content.length === 0) return "invalid_content";
+  if (tags !== undefined) {
+    if (!Array.isArray(tags) || !tags.every((t) => typeof t === "string")) return "invalid_tags";
+  }
+  return null;
+}
+
+interface ChainVerificationResult {
+  /** The verified head's entry_hash, or null for a genuinely empty chain. */
+  readonly headHash: string | null;
+  /**
+   * Genesis-to-head, in chain order. Already the PUBLIC-safe projection —
+   * this query never even selects `id`/`tags`/`created_epoch`/rowid, since
+   * none of them are part of what's verified (see VerifiedEntry in
+   * types.ts). Callers that need the full stored row (id/tags included) —
+   * currently only insertEntryIfVerifiedHead, which needs neither and
+   * ignores this field — must fetch it separately.
+   */
+  readonly entries: readonly VerifiedEntry[];
+}
+
+/**
+ * Recomputes every entry's content_hash and entry_hash from its own stored
+ * fields, and checks prev_hash linkage, from genesis to head — never trusts
+ * a cached "latest" pointer. Throws IntegrityFailureSignal("chain_broken")
+ * on the first row that doesn't check out.
+ *
+ * SHARED by insertEntryIfVerifiedHead and readVerifiedSnapshot — the CAS
+ * write path and the read-only snapshot path must never verify the chain by
+ * two different sets of rules. If this function's behavior ever needs to
+ * change, it changes for both at once.
+ */
+function verifyChainStructurally(database: Database.Database): ChainVerificationResult {
+  const rows = database
+    .prepare("SELECT content, content_hash, prev_hash, entry_hash, created_at FROM entries ORDER BY rowid ASC")
+    .all() as Array<{
+    content: string;
+    content_hash: string;
+    prev_hash: string | null;
+    entry_hash: string;
+    created_at: string;
+  }>;
+
+  let expectedPrev: string | null = null;
+  const entries: VerifiedEntry[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]!;
+    if (row.prev_hash !== expectedPrev) throw new IntegrityFailureSignal("chain_broken");
+    if (hashContent(row.content) !== row.content_hash) throw new IntegrityFailureSignal("chain_broken");
+    const recomputedEntryHash = hashEntry(buildEntryCanonical(row.content_hash, row.prev_hash, row.created_at));
+    if (recomputedEntryHash !== row.entry_hash) throw new IntegrityFailureSignal("chain_broken");
+    entries.push({
+      sequence: i,
+      content: row.content,
+      contentHash: row.content_hash,
+      prevHash: row.prev_hash,
+      entryHash: row.entry_hash,
+      createdAt: row.created_at,
+    });
+    expectedPrev = row.entry_hash;
+  }
+  return { headHash: expectedPrev, entries };
+}
+
+/**
+ * Checks the freshly re-derived `observedHead` against the external
+ * witness. Returns null when the witness confirms it, or the specific
+ * failure reason otherwise. Absence or indeterminacy of the witness is
+ * NEVER treated as success — an unreadable keychain blocks exactly like a
+ * mismatched one.
+ */
+function verifyWitnessAgainst(observedHead: string | null): ConditionalAppendIntegrityStatus | null {
+  let keychainRoot: string | null;
+  try {
+    keychainRoot = stateRootEntry().getPassword();
+  } catch (error) {
+    warnStateRootFailure("read", error);
+    return "witness_unavailable";
+  }
+
+  if (observedHead === null) {
+    // An empty chain with a witness already present is itself suspicious —
+    // it implies entries existed and were removed (this codebase never
+    // deletes rows) without the witness being cleared to match.
+    return keychainRoot !== null ? "witness_unexpected_when_empty" : null;
+  }
+  if (keychainRoot === null) return "witness_missing";
+  if (keychainRoot !== observedHead) return "witness_mismatch";
+  return null;
 }
 
 export function verifyStateRoot(): StateRootCheck {
@@ -241,7 +685,7 @@ export function searchEntriesFlexible(query: string, limit = 20): MemoryEntry[] 
 export function getLatestEntry(): MemoryEntry | undefined {
   const database = getDb();
   const row = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch DESC, rowid DESC LIMIT 1"
+    "SELECT * FROM entries ORDER BY rowid DESC LIMIT 1"
   ).get() as Record<string, unknown> | undefined;
   if (!row) return undefined;
   return rowToEntry(row);
@@ -250,7 +694,7 @@ export function getLatestEntry(): MemoryEntry | undefined {
 export function getChain(limit = 100): MemoryEntry[] {
   const database = getDb();
   const rows = database.prepare(
-    "SELECT * FROM entries ORDER BY created_epoch ASC, rowid ASC LIMIT ?"
+    "SELECT * FROM entries ORDER BY rowid ASC LIMIT ?"
   ).all(limit) as Record<string, unknown>[];
   return rows.map(rowToEntry);
 }
