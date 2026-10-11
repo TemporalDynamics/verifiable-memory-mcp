@@ -112,6 +112,30 @@ describe("append and chain linkage", () => {
 });
 
 describe("tamper detection (direct writes to the SQLite file)", () => {
+  it("recall flags tampered entries instead of hiding them", () => {
+    const a = parse(tools.remember({ content: "transferir a cuenta 4471" }));
+    const b = parse(tools.remember({ content: "transferir aprobado" }));
+    const c = parse(tools.remember({ content: "transferir registrado" }));
+
+    const clean = parse(tools.recall({ query: "transferir" }));
+    expect(clean.compromisedCount).toBe(0);
+    expect(clean.entries.every((e: any) => e.integrity === "valid")).toBe(true);
+
+    const db = rawDb();
+    db.prepare("UPDATE entries SET content = ? WHERE id = ?").run("transferir a cuenta 8856", a.id);
+    db.prepare("UPDATE entries SET entry_hash = ? WHERE id = ?").run("0".repeat(64), b.id);
+    db.close();
+
+    const r = parse(tools.recall({ query: "transferir" }));
+    const by = Object.fromEntries(r.entries.map((e: any) => [e.id, e]));
+    expect(r.count).toBe(3);
+    expect(r.compromisedCount).toBe(2);
+    expect(by[a.id].integrity).toBe("content_mismatch");
+    expect(by[a.id].content).toBe("transferir a cuenta 8856");
+    expect(by[b.id].integrity).toBe("hash_mismatch");
+    expect(by[c.id].integrity).toBe("valid");
+  });
+
   it("detects an edited content and points at the tampered entry", () => {
     const a = parse(tools.remember({ content: "transferir a cuenta 4471" }));
     const b = parse(tools.remember({ content: "aprobación humana ok" }));
