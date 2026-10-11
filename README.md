@@ -250,6 +250,8 @@ npx -y @modelcontextprotocol/inspector npx -y verifiable-memory-mcp
 }
 ```
 
+Each returned entry carries `integrity`: `valid`, `content_mismatch` or `hash_mismatch`, plus a top-level `compromisedCount`. This is a per-entry check (content vs. `contentHash`, and `entryHash` vs. its own fields); entries are never hidden. Deleted or reordered entries are caught by `chain`, not by `recall`.
+
 **timeline**
 
 ```json
