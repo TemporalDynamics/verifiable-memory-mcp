@@ -145,7 +145,8 @@
     <div class="circle" id="circle" aria-hidden="true">·</div>
     <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
     <div id="lifecycleArea">
-      <p class="badge-row" id="integrityRow" hidden><span class="badge-label" id="t_integrity">Integrity</span> <span class="badge-value" id="integrityValue"></span></p>
+      <p class="badge-row" id="integrityRow" hidden><span class="badge-label" id="t_integrity">Bundle integrity</span> <span class="badge-value" id="integrityValue"></span></p>
+      <p class="badge-row" id="authenticityRow" hidden><span class="badge-label" id="t_authenticity">Historical authenticity</span> <span class="badge-value" id="authenticityValue"></span></p>
       <p class="badge-row" id="lifecycleRow" hidden><span class="badge-label" id="t_lifecycle">Lifecycle</span> <span class="badge-value" id="lifecycleValue"></span></p>
       <p class="badge-row" id="originRow" hidden><span class="badge-label" id="t_origin">Origin</span> <span class="badge-value" id="originValue"></span></p>
     </div>
@@ -164,9 +165,10 @@
       </label>
     </div>
     <div class="anchor">
-      <label for="anchor" id="t_anchor">Hash de ancla (sha256 del archivo, opcional)</label>
+      <label for="anchor" id="t_anchor">Hash externo confiable de bundleText (SHA-256 de bytes UTF-8, opcional)</label>
       <input type="text" id="anchor" inputmode="latin" autocomplete="off" spellcheck="false"
              placeholder="3f9c…(64 hex)">
+      <p class="sub" id="t_anchor_help">Pégalo solo si lo obtuviste por un canal confiable fuera del ECO. El anchor.bundleHash interno no es una raíz independiente.</p>
     </div>
     <div class="strict">
       <div class="strict-title" id="t_strict_title">Modo estricto</div>
@@ -300,7 +302,8 @@
   }
 
   // bytes: Uint8Array | ArrayBuffer con los bytes EXACTOS del archivo.
-  // anchorRaw: string | null — sha256 hex esperado del archivo completo.
+  // anchorRaw: SHA-256 externo del byte sequence comprobado: archivo raw o
+  // UTF-8 de bundleText para ECO. No se toma del ECO automáticamente.
   // Devuelve: { verdict: "green"|"red"|"error", anchor, bundleHash, entryCount,
   //             exportedAt, version, checkedEntries, failure }
   // failure.check ∈ parse | format | structure | content | entry | link | anchor | anchor_invalid
@@ -308,6 +311,7 @@
     const result = {
       verdict: "error",
       anchor: "not_provided", // not_provided | match | mismatch | invalid
+      historicalAuthenticity: "not_established",
       bundleHash: null,
       entryCount: null,
       exportedAt: null,
@@ -328,6 +332,7 @@
     }
     if (anchor.provided) {
       result.anchor = anchor.value === result.bundleHash ? "match" : "mismatch";
+      result.historicalAuthenticity = result.anchor === "match" ? "matches_external_hash" : "external_hash_mismatch";
     }
 
     let bundle = null;
@@ -435,10 +440,9 @@
     const eco = extractEvidencePackage(bytes);
     if (!eco) return verifyBundle(bytes, anchorRaw);
 
-    const anchor = anchorRaw && String(anchorRaw).trim()
-      ? anchorRaw
-      : eco.anchor.bundleHash;
-    const result = await verifyBundle(textToBytes(eco.bundleText), anchor);
+    // anchorRaw solo es independiente cuando el usuario lo obtuvo fuera del ECO.
+    // Nunca promover eco.anchor.bundleHash a raíz confiable.
+    const result = await verifyBundle(textToBytes(eco.bundleText), anchorRaw);
     result.package = {
       format: eco.format,
       eco_version: eco.eco_version ?? null,
@@ -449,12 +453,17 @@
       lifecycle: eco.lifecycle ?? null,
       manifest: eco.manifest ?? null,
       packageHash: eco.packageHash?.value ?? null,
+      internalAnchorBundleHash: eco.anchor?.bundleHash ?? null,
       report: eco.report ?? null,
       authority_summary: eco.authority_summary ?? null,
       policy_summary: eco.policy_summary ?? null,
       ledger_summary: eco.ledger_summary ?? null,
       assets_index: eco.assets_index ?? null,
       verification: eco.verification ?? null,
+      metadataAuthentication: {
+        status: "unauthenticated",
+        fields: ["origin_app", "artifact_id", "artifact_type", "lifecycle", "manifest", "packageHash", "report", "authority_summary", "policy_summary", "ledger_summary", "assets_index", "verification", "anchor.bundleHash"]
+      },
       wrapper: eco.wrapper ?? null,
     };
     return result;
@@ -480,23 +489,25 @@
       title: "ECOsistema Verifier",
       drop: "Arrastra y suelta un .eco, .ecox o Evidence Record aquí",
       pick: "Elegir archivo",
-      anchor: "Hash de ancla (sha256 del archivo, opcional)",
+      anchor: "Hash externo confiable de bundleText (SHA-256 de bytes UTF-8, opcional)",
+      anchorHelp: "Pégalo solo si lo obtuviste por un canal confiable fuera del ECO. El anchor.bundleHash interno no es una raíz independiente.",
       strictTitle: "Modo estricto",
       pickRecord: "Cargar Evidence Record",
       pickReceipt: "Cargar ECO receipt",
       strictWaiting: "Carga ambos archivos para comparar el registro contra el ECO.",
       strictReady: "Evidence Record y ECO cargados. Verificando coincidencia…",
-      strictMatch: "Evidence Record coincide con el ECO.",
-      strictMismatch: "Evidence Record no coincide con el ECO.",
+      strictMatch: "Los bytes del Evidence Record coinciden con el hash declarado dentro del ECO; no es un anclaje independiente.",
+      strictMismatch: "Los bytes del Evidence Record no coinciden con el hash declarado dentro del ECO.",
       details: "Detalles técnicos",
       idle: "Carga un .eco exportado para verificarlo.",
       busy: "Verificando…",
-      integrity: "Integridad",
-      lifecycle: "Ciclo de vida",
-      valid: "VÁLIDA",
+      integrity: "Integridad interna del bundle",
+      authenticity: "Autenticidad histórica",
+      lifecycle: "Ciclo de vida declarado/no autenticado",
+      valid: "CONSISTENTE",
       tampered: "ALTERADA",
       unknown: "DESCONOCIDA",
-      origin: "Origen",
+      origin: "Origen declarado/no autenticado",
       final: "FINAL",
       snapshot: "SNAPSHOT",
       superseded: "SUPERSEDIDO",
@@ -504,11 +515,15 @@
       incident: "INCIDENTE",
       unknownModuleTitle: "Integridad verificada",
       unknownModuleBody: "Este artefacto contiene evidencia específica de la aplicación que requiere un visor autorizado.",
-      green: "ÍNTEGRO",
+      green: "CONSISTENTE INTERNAMENTE",
       red: "ALTERADO",
       chainOk: "La cadena de hashes es consistente.",
       anchorOk: "Coincide con el ancla externa.",
       anchorNone: "Sin ancla externa: verificación interna solamente.",
+      authenticityMatch: "Coincide con el hash externo proporcionado",
+      authenticityMismatch: "No coincide con el hash externo proporcionado",
+      authenticityUnknown: "No comprobable sin hash externo confiable",
+      declaredUnauthenticated: "declarado por el ECO; no autenticado",
       anchorMismatch: "El archivo no coincide con el ancla externa.",
       anchorInvalid: "El ancla no es un sha256 válido (64 hex). Revísala.",
       parse: "El archivo no es JSON válido — no se pudo verificar.",
@@ -521,12 +536,17 @@
       chainAlsoOk: "cadena interna consistente, pero no es el archivo anclado",
       insecure: "Este verificador necesita un contexto seguro (https:// o localhost).",
       fetchErr: "No se pudo cargar la URL del Evidence Record.",
-      dEntries: "Entradas", dChecked: "Verificadas", dExported: "Exportado",
-      dBundleHash: "sha256 del Evidence Record", dFailCheck: "Check fallido",
+      dEntries: "Entradas", dChecked: "Hashes comprobados", dExported: "exportedAt declarado (no autenticado sin ancla externa)",
+      dBundleHash: "SHA-256 de bytes comprobados", dFailCheck: "Check fallido",
       dFailEntry: "Entry", dExpected: "Hash esperado", dActual: "Hash actual",
-      dPackage: "Paquete", dDecision: "Decisión", dAnchor: "Ancla", dLimit: "Alcance",
+      dPackage: "Paquete", dDecision: "Decisión", dAnchor: "Hash externo", dLimit: "Alcance",
       dOrigin: "App origen", dArtifactType: "Tipo artefacto", dLifecycle: "Ciclo vida",
-      dIntegrity: "Integridad",
+      dIntegrity: "Integridad declarada por el ECO (no autenticada)",
+      dAuthority: "Resumen de autoridad (declarado/no autenticado)",
+      dPolicy: "Resumen de política (declarado/no autenticado)",
+      dReport: "Reporte (declarado/no autenticado)",
+      dPackageHash: "packageHash declarado (no recalculado)",
+      dInternalAnchor: "anchor.bundleHash declarado dentro del ECO (no externo)",
       dLimitText: "tamper-evident: detecta alteración; no valida veracidad del contenido",
       aMatch: "coincide", aMismatch: "no coincide", aNone: "no provista", aInvalid: "inválida",
       limit: "Tamper-evident: este verificador detecta alteraciones del registro; no valida que el contenido sea correcto. Toda la verificación ocurre localmente en tu dispositivo — no se envía nada a ningún servidor.",
@@ -536,23 +556,25 @@
       title: "ECOsystem Verifier",
       drop: "Drag and drop a .eco, .ecox, or Evidence Record here",
       pick: "Choose file",
-      anchor: "Anchor hash (sha256 of the file, optional)",
+      anchor: "Trusted external hash of bundleText (SHA-256 of UTF-8 bytes, optional)",
+      anchorHelp: "Paste only if obtained through a trusted channel outside the ECO. The internal anchor.bundleHash is not an independent root.",
       strictTitle: "Strict mode",
       pickRecord: "Load Evidence Record",
       pickReceipt: "Load ECO receipt",
       strictWaiting: "Load both files to compare the record against the ECO.",
       strictReady: "Evidence Record and ECO loaded. Checking match…",
-      strictMatch: "Evidence Record matches the ECO.",
-      strictMismatch: "Evidence Record does not match the ECO.",
+      strictMatch: "Evidence Record bytes match the hash declared inside the ECO; this is not an independent anchor.",
+      strictMismatch: "Evidence Record bytes do not match the hash declared inside the ECO.",
       details: "Technical details",
       idle: "Load an exported .eco to verify it.",
       busy: "Verifying…",
-      integrity: "Integrity",
-      lifecycle: "Lifecycle",
-      valid: "VALID",
+      integrity: "Internal bundle integrity",
+      authenticity: "Historical authenticity",
+      lifecycle: "Lifecycle (declared/unauthenticated)",
+      valid: "CONSISTENT",
       tampered: "TAMPERED",
       unknown: "UNKNOWN",
-      origin: "Origin",
+      origin: "Origin (declared/unauthenticated)",
       final: "FINAL",
       snapshot: "SNAPSHOT",
       superseded: "SUPERSEDED",
@@ -560,11 +582,15 @@
       incident: "INCIDENT",
       unknownModuleTitle: "Integrity verified",
       unknownModuleBody: "This artifact contains app-specific evidence that requires an authorized viewer.",
-      green: "INTACT",
+      green: "INTERNALLY CONSISTENT",
       red: "ALTERED",
       chainOk: "The hash chain is consistent.",
       anchorOk: "Matches the external anchor.",
       anchorNone: "No external anchor: internal verification only.",
+      authenticityMatch: "Matches the supplied external hash",
+      authenticityMismatch: "Does not match the supplied external hash",
+      authenticityUnknown: "Cannot be established without a trusted external hash",
+      declaredUnauthenticated: "declared by the ECO; unauthenticated",
       anchorMismatch: "The file does not match the external anchor.",
       anchorInvalid: "The anchor is not a valid sha256 (64 hex). Check it.",
       parse: "The file is not valid JSON — nothing could be verified.",
@@ -577,12 +603,17 @@
       chainAlsoOk: "internal chain is consistent, but this is not the anchored file",
       insecure: "This verifier requires a secure context (https:// or localhost).",
       fetchErr: "Could not load the Evidence Record URL.",
-      dEntries: "Entries", dChecked: "Checked", dExported: "Exported",
-      dBundleHash: "Evidence Record sha256", dFailCheck: "Failed check",
+      dEntries: "Entries", dChecked: "Hashes checked", dExported: "Declared exportedAt (unauthenticated without external hash)",
+      dBundleHash: "SHA-256 of checked bytes", dFailCheck: "Failed check",
       dFailEntry: "Entry", dExpected: "Expected hash", dActual: "Actual hash",
-      dPackage: "Package", dDecision: "Decision", dAnchor: "Anchor", dLimit: "Scope",
+      dPackage: "Package", dDecision: "Decision", dAnchor: "External hash", dLimit: "Scope",
       dOrigin: "Origin app", dArtifactType: "Artifact type", dLifecycle: "Lifecycle",
-      dIntegrity: "Integrity",
+      dIntegrity: "Integrity declared by ECO (unauthenticated)",
+      dAuthority: "Authority summary (declared/unauthenticated)",
+      dPolicy: "Policy summary (declared/unauthenticated)",
+      dReport: "Report (declared/unauthenticated)",
+      dPackageHash: "Declared packageHash (not recalculated)",
+      dInternalAnchor: "anchor.bundleHash declared inside ECO (not external)",
       dLimitText: "tamper-evident: detects alteration; does not validate content truthfulness",
       aMatch: "match", aMismatch: "mismatch", aNone: "not provided", aInvalid: "invalid",
       limit: "Tamper-evident: this verifier detects alterations of the record; it does not validate that the content is correct. All verification happens locally on your device — nothing is sent to any server.",
@@ -610,6 +641,11 @@
     $("t_drop").textContent = t("drop");
     $("t_pick").textContent = t("pick");
     $("t_anchor").textContent = t("anchor");
+    $("t_anchor_help").textContent = t("anchorHelp");
+    $("t_integrity").textContent = t("integrity");
+    $("t_authenticity").textContent = t("authenticity");
+    $("t_lifecycle").textContent = t("lifecycle");
+    $("t_origin").textContent = t("origin");
     $("t_strict_title").textContent = t("strictTitle");
     $("t_pick_record").textContent = t("pickRecord");
     $("t_pick_receipt").textContent = t("pickReceipt");
@@ -637,16 +673,18 @@
 
   function showBadges(r) {
     const pkg = r.package || {};
-    const ver = pkg.verification || {};
-    const integrity = ver.integrity || (r.verdict === "green" ? "VALID" : r.verdict === "red" ? "TAMPERED" : "UNKNOWN");
-    const lifecycle = ver.lifecycle || pkg.lifecycle || "UNKNOWN";
-    const origin = pkg.origin_app || "verifiable-memory-mcp";
+    const integrity = r.chainConsistent === true ? t("valid") : r.chainConsistent === false ? t("tampered") : t("unknown");
+    const authenticity = r.anchor === "match" ? t("authenticityMatch") : r.anchor === "mismatch" ? t("authenticityMismatch") : t("authenticityUnknown");
+    const lifecycle = pkg.lifecycle || "UNKNOWN";
+    const origin = pkg.origin_app || "UNKNOWN";
 
     lifecycleArea.hidden = false;
     integrityRow.hidden = false;
+    document.getElementById("authenticityRow").hidden = false;
     lifecycleRow.hidden = false;
     originRow.hidden = false;
     integrityValue.textContent = integrity;
+    document.getElementById("authenticityValue").textContent = authenticity;
     lifecycleValue.textContent = lifecycle;
     originValue.textContent = origin;
   }
@@ -684,25 +722,14 @@
     hideAllStatus();
 
     if (r.verdict === "green") {
-      const origin = r.package?.origin_app;
-      const isKnownOrigin = !origin || origin === "verifiable-memory-mcp";
-
-      if (!isKnownOrigin) {
-        // Unknown module: show generic integrity message
-        circle.className = "circle green"; circle.textContent = "✓";
-        verdict.className = "verdict green"; verdict.textContent = "";
-        unknownModule.hidden = false;
-        unknownTitle.textContent = t("unknownModuleTitle");
-        unknownBody.textContent = t("unknownModuleBody");
-        statusline.textContent = t("chainOk") + " " +
-          (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
-      } else {
-        circle.className = "circle green"; circle.textContent = "✓";
-        verdict.className = "verdict green"; verdict.textContent = t("green");
-        showBadges(r);
-        statusline.textContent = t("chainOk") + " " +
-          (r.anchor === "match" ? t("anchorOk") : t("anchorNone"));
-      }
+      const externallyAnchored = r.anchor === "match";
+      circle.className = externallyAnchored ? "circle green" : "circle";
+      circle.textContent = externallyAnchored ? "✓" : "i";
+      verdict.className = externallyAnchored ? "verdict green" : "verdict";
+      verdict.textContent = t("green");
+      showBadges(r);
+      statusline.textContent = t("chainOk") + " " +
+        (r.anchor === "match" ? t("anchorOk") : t("authenticityUnknown"));
     } else if (r.verdict === "red") {
       circle.className = "circle red"; circle.textContent = "✕";
       verdict.className = "verdict red"; verdict.textContent = t("red");
@@ -717,15 +744,23 @@
       return;
     }
 
-    if (r.package?.manifest?.label) addDetail("dPackage", r.package.manifest.label, true);
-    if (r.package?.manifest?.decision) addDetail("dDecision", r.package.manifest.decision, true);
-    if (r.package?.origin_app) addDetail("dOrigin", r.package.origin_app, true);
-    if (r.package?.artifact_type) addDetail("dArtifactType", r.package.artifact_type, true);
+    if (r.package?.manifest?.label) addDetail("dPackage", r.package.manifest.label + " — " + t("declaredUnauthenticated"), true);
+    if (r.package?.manifest?.decision) addDetail("dDecision", r.package.manifest.decision + " — " + t("declaredUnauthenticated"), true);
+    if (r.package?.origin_app) addDetail("dOrigin", r.package.origin_app + " — " + t("declaredUnauthenticated"), true);
+    if (r.package?.artifact_type) addDetail("dArtifactType", r.package.artifact_type + " — " + t("declaredUnauthenticated"), true);
     if (r.package?.lifecycle || r.package?.verification?.lifecycle) {
-      addDetail("dLifecycle", r.package.verification?.lifecycle || r.package.lifecycle, true);
+      addDetail("dLifecycle", (r.package.verification?.lifecycle || r.package.lifecycle) + " — " + t("declaredUnauthenticated"), true);
     }
     if (r.package?.verification?.integrity) {
       addDetail("dIntegrity", r.package.verification.integrity, true);
+    }
+    if (r.package?.authority_summary) addDetail("dAuthority", JSON.stringify(r.package.authority_summary));
+    if (r.package?.policy_summary) addDetail("dPolicy", JSON.stringify(r.package.policy_summary));
+    if (r.package?.report) addDetail("dReport", r.package.report);
+    if (r.package?.packageHash) addDetail("dPackageHash", r.package.packageHash);
+    if (r.package?.internalAnchorBundleHash) addDetail("dInternalAnchor", r.package.internalAnchorBundleHash);
+    if (r.package?.recordComparisonToDeclaredHash) {
+      addDetail("dInternalAnchor", "Evidence Record comparison: " + r.package.recordComparisonToDeclaredHash + " (declared hash; not an independent anchor)");
     }
     if (r.entryCount !== null) addDetail("dEntries", String(r.entryCount), true);
     addDetail("dChecked", String(r.checkedEntries), true);
@@ -781,28 +816,8 @@
       }
       const recordHash = await globalThis.VMCPVerifier.sha256HexOfBytes(strictRecordBytes);
       const expectedHash = receipt.anchor?.bundleHash;
-      if (recordHash !== expectedHash) {
-        const result = await globalThis.VMCPVerifier.verifyBundle(strictRecordBytes, expectedHash);
-        result.verdict = "red";
-        result.anchor = "mismatch";
-        result.failure = { check: "anchor", entryId: null, index: null };
-        result.package = {
-          format: receipt.format,
-          eco_version: receipt.eco_version ?? null,
-          version: receipt.version ?? null,
-          origin_app: receipt.origin_app ?? null,
-          artifact_id: receipt.artifact_id ?? null,
-          artifact_type: receipt.artifact_type ?? null,
-          lifecycle: receipt.lifecycle ?? null,
-          manifest: receipt.manifest ?? null,
-          verification: receipt.verification ?? null,
-          wrapper: receipt.wrapper ?? null
-        };
-        strictStatus.textContent = t("strictMismatch");
-        render(result);
-        return;
-      }
-      const result = await globalThis.VMCPVerifier.verifyBundle(strictRecordBytes, expectedHash);
+      const matchesDeclaredHash = typeof expectedHash === "string" && recordHash === expectedHash;
+      const result = await globalThis.VMCPVerifier.verifyBundle(strictRecordBytes, null);
       result.package = {
         format: receipt.format,
         eco_version: receipt.eco_version ?? null,
@@ -813,9 +828,12 @@
         lifecycle: receipt.lifecycle ?? null,
         manifest: receipt.manifest ?? null,
         verification: receipt.verification ?? null,
+        internalAnchorBundleHash: expectedHash ?? null,
+        recordComparisonToDeclaredHash: matchesDeclaredHash ? "match" : "mismatch",
+        metadataAuthentication: { status: "unauthenticated" },
         wrapper: receipt.wrapper ?? null
       };
-      strictStatus.textContent = result.verdict === "green" ? t("strictMatch") : t("strictMismatch");
+      strictStatus.textContent = matchesDeclaredHash ? t("strictMatch") : t("strictMismatch");
       render(result);
     } catch (err) {
       renderIdle(String(err && err.message ? err.message : err));
