@@ -16,7 +16,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registerFakeKeyring = join(repoRoot, "test/support/register-fake-keyring.mjs");
-const serverScript = join(repoRoot, "dist/index.js");
+const serverScript = process.env.VMCP_SERVER_ENTRY ?? join(repoRoot, "dist/index.js");
 
 let tempDir: string;
 let fakeKeychainPath: string;
@@ -26,7 +26,11 @@ let transport: StdioClientTransport;
 function parseText(result: any): any {
   expect(result.content).toBeDefined();
   expect(result.content[0].type).toBe("text");
-  return JSON.parse(result.content[0].text);
+  try {
+    return JSON.parse(result.content[0].text);
+  } catch {
+    throw new Error(`Expected JSON tool result, got: ${JSON.stringify(result)}`);
+  }
 }
 
 beforeEach(async () => {
