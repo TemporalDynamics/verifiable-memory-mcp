@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>verifiable-memory-mcp — memory your AI agents can verify</title>
-<meta name="description" content="Local-first, append-only, tamper-evident memory for AI agents via MCP. The agent verifies integrity before acting, stops on tampering, and exports portable evidence.">
+<meta name="description" content="Local-first, append-only, tamper-evident memory for AI agents via MCP. Cryptographic integrity checks, conditional operations, and portable evidence so agents can detect tampering and halt.">
 <style>
   :root {
     --bg: #f5f4ec;
@@ -157,6 +157,58 @@
     white-space: pre-wrap;
     word-break: break-word;
   }
+  .install-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    gap: 1rem;
+  }
+  .install-card {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .snippet-group {
+    display: grid;
+    gap: .65rem;
+    margin-top: .25rem;
+  }
+  .code-snippet {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .snippet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .45rem .75rem;
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--card) 60%, var(--bg) 40%);
+  }
+  .copy-btn {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--muted);
+    padding: .2rem .55rem;
+    font-size: .72rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: color .15s, border-color .15s;
+  }
+  .copy-btn:hover { color: var(--ink); border-color: var(--ink); }
+  .code-snippet pre {
+    margin: 0;
+    padding: .7rem .85rem;
+    overflow-x: auto;
+    font: .82rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre;
+  }
+  .code-snippet code { font-family: inherit; }
   .note {
     font-size: .86rem;
     color: var(--muted);
@@ -302,9 +354,9 @@
     <h1>Give your AI agents memory they can verify.</h1>
     <p class="lead">
       Agents act on stored memory. But that memory can be edited, overwritten, or silently
-      corrupted. <strong>verifiable-memory-mcp</strong> gives an agent an integrity layer:
-      it checks memory before acting, <strong>stops if it was changed outside the approved flow</strong>,
-      and exports portable evidence of what happened.
+      corrupted. <strong>verifiable-memory-mcp</strong> gives agents a local-first integrity layer:
+      it provides cryptographic verification, conditional append operations, and portable evidence so
+      consumer applications and agent workflows can detect tampering and halt before acting on untrusted state.
     </p>
 
     <div class="cta">
@@ -313,8 +365,8 @@
       <a class="btn ghost" href="#local">Install and run locally</a>
     </div>
 
-    <p class="meta">v0.2.1 · published on npm · 6 MCP tools · local-first, runs offline</p>
-    <p class="meta">MCP SDK updated to 1.30.0 · 23/23 core tests and 36/36 verifier acceptance checks passing</p>
+    <p class="meta"><strong>npm published:</strong> v0.2.1 (6 tools) · <strong>Release candidate:</strong> v0.3.0 (8 MCP tools · dual protocol v1 + 2026-07-28 · local-first SQLite)</p>
+    <p class="meta">85 core test suite checks and 21 verifier acceptance checks passing · Node.js 22+</p>
   </header>
 
   <section id="paths">
@@ -377,7 +429,7 @@
       <div class="step stop">
         <div class="n">05</div>
         <h3>Stop before action</h3>
-        <p>Before continuing, the agent detects that inconsistency and halts instead of acting on corrupted context.</p>
+        <p>The agent's policy checks memory integrity via VMMCP, detects the inconsistency, and halts instead of acting on corrupted context.</p>
       </div>
       <div class="step">
         <div class="n">06</div>
@@ -397,63 +449,136 @@
   </section>
 
   <section id="local">
-    <p class="kicker">Local install</p>
-    <h2>Reproduce the same flow on your own machine.</h2>
+    <p class="kicker">Installation & Reproduction</p>
+    <h2>Choose how you want to run verifiable memory.</h2>
     <p class="section-lead">
-      The browser sandbox is the fastest way to understand the flow. The local path lets anyone reproduce the same sequence from the repository scripts without trusting the landing page.
+      Connect the published MCP server to your agents, or clone the repository to reproduce the full forensic tamper-and-stop demonstration.
     </p>
-    <div class="code-stack">
-      <div class="code-card">
-        <h3>1. Install</h3>
-        <p>Install the package and its local demo tooling.</p>
-        <div class="install">
-          <code id="cmd">npm install -g verifiable-memory-mcp</code>
-          <button id="copy" aria-label="Copy install command">Copy</button>
+
+    <div class="decision-grid install-grid">
+      <!-- Path A: MCP Server -->
+      <div class="card install-card">
+        <span class="eyebrow">Path A · Use the MCP server</span>
+        <h3>Connect to an agent client</h3>
+        <p>
+          The npm package distributes the compiled MCP server (from <code>dist/</code>) communicating over stdio JSON-RPC.
+          Commands below currently install published <strong>v0.2.1</strong> (6 tools); the incoming <strong>v0.3.0</strong>
+          candidate (8 tools, dual protocol v1 + 2026-07-28, Node 22+) will deploy to this same endpoint.
+        </p>
+
+        <div class="snippet-group">
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>Run directly via npx</span>
+              <button class="copy-btn" data-copy-target="cmd-npx" aria-label="Copy npx command">Copy</button>
+            </div>
+            <pre><code id="cmd-npx">npx -y verifiable-memory-mcp</code></pre>
+          </div>
+
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>Install globally</span>
+              <button class="copy-btn" id="copy" data-copy-target="cmd" aria-label="Copy global install command">Copy</button>
+            </div>
+            <pre><code id="cmd">npm install -g verifiable-memory-mcp</code></pre>
+          </div>
+
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>Claude Desktop / Cursor config</span>
+              <button class="copy-btn" data-copy-target="cmd-config" aria-label="Copy client config">Copy</button>
+            </div>
+            <pre><code id="cmd-config">{
+  "mcpServers": {
+    "verifiable-memory": {
+      "command": "npx",
+      "args": ["-y", "verifiable-memory-mcp"]
+    }
+  }
+}</code></pre>
+          </div>
         </div>
       </div>
-      <div class="code-card">
-        <h3>2. Run the clean cycle</h3>
-        <p>Reset the scenario, load the sample state, and execute one clean pass.</p>
-        <pre>npm run demo:scenario:reset
-npm run demo:cycle</pre>
-      </div>
-      <div class="code-card">
-        <h3>3. Trigger the stop condition</h3>
-        <p>Alter the ledger outside the approved flow, then execute the next cycle.</p>
-        <pre>npm run demo:tamper
-npm run demo:cycle-after-tamper</pre>
-      </div>
-      <div class="code-card">
-        <h3>4. Export and verify</h3>
-        <p>Export the ECO package, then open the independent verifier in your browser.</p>
-        <pre>npm run demo:export
-npm run demo:verifier</pre>
+
+      <!-- Path B: Source repo -->
+      <div class="card install-card">
+        <span class="eyebrow">Path B · Forensics & Tamper Demo</span>
+        <h3>Reproduce the demo from source</h3>
+        <p>
+          The interactive attack scripts, tamper tools, and local verifier server live in the source repository.
+          Clone the repo and run with its development dependencies:
+        </p>
+
+        <div class="snippet-group">
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>1. Clone & install repo dependencies</span>
+              <button class="copy-btn" data-copy-target="cmd-clone" aria-label="Copy clone commands">Copy</button>
+            </div>
+            <pre><code id="cmd-clone">git clone https://github.com/TemporalDynamics/verifiable-memory-mcp.git
+cd verifiable-memory-mcp
+npm ci</code></pre>
+          </div>
+
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>2. Run clean cycle (normal baseline)</span>
+              <button class="copy-btn" data-copy-target="cmd-clean" aria-label="Copy clean commands">Copy</button>
+            </div>
+            <pre><code id="cmd-clean">npm run demo:scenario:reset
+npm run demo:cycle</code></pre>
+          </div>
+
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>3. Simulate tamper & trigger policy halt</span>
+              <button class="copy-btn" data-copy-target="cmd-tamper" aria-label="Copy tamper commands">Copy</button>
+            </div>
+            <pre><code id="cmd-tamper">npm run demo:tamper
+npm run demo:cycle-after-tamper</code></pre>
+          </div>
+
+          <div class="code-snippet">
+            <div class="snippet-header">
+              <span>4. Export ECO & verify locally</span>
+              <button class="copy-btn" data-copy-target="cmd-export" aria-label="Copy export commands">Copy</button>
+            </div>
+            <pre><code id="cmd-export">npm run demo:export
+npm run demo:verifier</code></pre>
+          </div>
+        </div>
       </div>
     </div>
-    <p class="note">The point is not general AI correctness. The point is whether the agent can prove the state it acted from and stop when that state changes.</p>
+
+    <p class="note">
+      <strong>Application responsibility:</strong> VMMCP provides cryptographic verification and tamper signals.
+      Consumer applications and agent frameworks use these signals to enforce halt policies before executing irreversible actions.
+    </p>
   </section>
 
   <section id="eco">
     <p class="kicker">Evidence</p>
     <h2>A portable package, not a screenshot.</h2>
     <p class="section-lead">
-      The main evidence artifact is an <span class="mono">.eco</span> package: the Evidence Record,
-      an integrity anchor, agent decision metadata, and a human-readable report. The verifier checks it entirely in the browser.
+      The primary evidence artifact is an <span class="mono">.eco</span> package: the Evidence Record,
+      an integrity anchor, agent decision metadata, and an unauthenticated report. The browser verifier validates internal cryptographic consistency offline.
     </p>
     <div class="eco">
       <div class="row"><span class="k">Evidence Record</span><span class="v">verifiable-memory-bundle</span></div>
       <div class="row"><span class="k">Evidence Hash</span><span class="v">sha256(record)</span></div>
       <div class="row"><span class="k">manifest</span><span class="v">agent · cycle · decision · status</span></div>
-      <div class="row"><span class="k">report</span><span class="v">human-readable explanation</span></div>
+      <div class="row"><span class="k">report</span><span class="v">human-readable explanation (unauthenticated)</span></div>
       <div class="row"><span class="k">ECOX</span><span class="v">permissioned replay package</span></div>
     </div>
     <div class="honest">
-      <strong>Important:</strong> ECO is the shareable receipt; ECOX is the extended replay for controlled review. This proves integrity state and evidence portability, not that an AI answer is universally correct.
+      <strong>Important:</strong> ECO is the shareable receipt; ECOX is the extended replay for controlled review.
+      The verifier checks <em>internal cryptographic consistency</em> offline. Proving <em>historical authenticity</em> requires
+      comparing the bundle hash against an independently supplied witness or external commitment.
     </div>
     <div class="states">
-      <span class="pill valid"><span class="ring"></span>VERIFIED — intact</span>
-      <span class="pill tampered"><span class="ring"></span>ALTERED — chain broken</span>
-      <span class="pill unknown"><span class="ring"></span>UNKNOWN — no valid anchor</span>
+      <span class="pill valid"><span class="ring"></span>CONSISTENT — internal chain intact</span>
+      <span class="pill tampered"><span class="ring"></span>ALTERED — hash chain broken</span>
+      <span class="pill unknown"><span class="ring"></span>UNANCHORED — internal check only</span>
     </div>
     <div class="cta">
       <a class="btn primary" href="./verifier/index.html">Verify an ECO in the browser</a>
@@ -488,8 +613,8 @@ npm run demo:verifier</pre>
         <div class="core-card">
           <h3><a href="#sandbox">Verifiable Memory MCP</a></h3>
           <p class="subhead">Public primitive - reproducible and local.</p>
-          <p>A local, tamper-evident memory layer that lets agents verify what they know before acting -
-          and stop when integrity fails. Install it from npm, tamper with it, verify it yourself.</p>
+          <p>A local-first, tamper-evident memory layer that provides cryptographic integrity verification,
+          conditional append operations, and portable evidence. Agents inspect verifiable signals to govern actions and halt when integrity fails.</p>
         </div>
       </div>
 
@@ -499,14 +624,14 @@ npm run demo:verifier</pre>
           <div class="evidence-card">
             <h3><a href="./verifier/index.html">ECO Evidence Package</a></h3>
             <p class="subhead">Portable receipt.</p>
-            <p>Carries the evidence record, integrity state, decision metadata, and a human-readable report
-            so another party can check what happened outside the original system.</p>
+            <p>Carries the evidence record, internal integrity state, decision metadata, and report
+            so another party can audit what happened outside the original system.</p>
           </div>
           <div class="evidence-card">
             <h3><a href="./verifier/index.html">Browser Verifier</a></h3>
             <p class="subhead">Independent check.</p>
             <p>Lets anyone inspect an evidence package in the browser without trusting our backend, our
-            screen, or our claims. Verification stays separate from the workflow that produced the evidence.</p>
+            screen, or our claims. Validates internal hash chains and matches against external anchors when provided.</p>
           </div>
         </div>
       </div>
@@ -550,7 +675,7 @@ npm run demo:verifier</pre>
   </section>
 
   <section class="closing">
-    <p>AI agents should not just act. They should prove the state they acted from, and stop when that state changes.</p>
+    <p>AI agents should not just act. They should be able to prove the state they acted from, allowing workflows to halt when that state is compromised.</p>
   </section>
 
 </div>
@@ -572,19 +697,69 @@ npm run demo:verifier</pre>
 
 <script>
   (function () {
-    var btn = document.getElementById('copy');
-    var cmd = document.getElementById('cmd');
-    if (!btn || !cmd) return;
-    btn.addEventListener('click', function () {
-      var text = cmd.textContent.trim();
-      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done).catch(done);
+    function setFeedback(button, message) {
+      if (button._copyResetTimer) clearTimeout(button._copyResetTimer);
+      var orig = button.getAttribute('data-orig-text') || button.textContent;
+      button.setAttribute('data-orig-text', orig);
+      button.textContent = message;
+      button._copyResetTimer = setTimeout(function () {
+        button.textContent = orig;
+        button.removeAttribute('data-orig-text');
+        button._copyResetTimer = null;
+      }, 1500);
+    }
+
+    function fallbackCopy(el) {
+      var success = false;
+      var range = document.createRange();
+      range.selectNodeContents(el);
+      var selection = window.getSelection();
+      if (!selection) return false;
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try {
+        success = document.execCommand('copy');
+      } catch (err) {
+        success = false;
+      }
+      selection.removeAllRanges();
+      return success;
+    }
+
+    function handleCopy(button, targetId) {
+      var el = document.getElementById(targetId);
+      if (!el) {
+        setFeedback(button, 'Copy failed');
+        return;
+      }
+      var text = el.textContent.trim();
+
+      if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          setFeedback(button, 'Copied');
+        }).catch(function () {
+          if (fallbackCopy(el)) {
+            setFeedback(button, 'Copied');
+          } else {
+            setFeedback(button, 'Copy failed');
+          }
+        });
       } else {
-        var r = document.createRange(); r.selectNode(cmd);
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-        try { document.execCommand('copy'); } catch (e) {}
-        s.removeAllRanges(); done();
+        if (fallbackCopy(el)) {
+          setFeedback(button, 'Copied');
+        } else {
+          setFeedback(button, 'Copy failed');
+        }
+      }
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('button[data-copy-target], #copy');
+      if (!btn) return;
+      var targetId = btn.getAttribute('data-copy-target') || (btn.id === 'copy' ? 'cmd' : null);
+      if (targetId) {
+        e.preventDefault();
+        handleCopy(btn, targetId);
       }
     });
   })();

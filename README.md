@@ -91,6 +91,16 @@ If someone inserts, removes, or reorders entries, the chain breaks.
 
 ## Evidence packages and verifier
 
+> **Source-repository resources:** The local `.eco` demos and verifier instructions in this section require a clone of the source repository. The npm package distributes the MCP server from `dist/`; it does not contain the `demo/`, `verifier/`, or `sandbox/` directories. The package manifest retains `demo:*` development script entries, but their target files are omitted from the npm tarball, so those commands cannot run from an npm-only installation.
+
+To use the demos and local verifier, work from the repository root and install its development dependencies:
+
+```bash
+git clone https://github.com/TemporalDynamics/verifiable-memory-mcp.git
+cd verifiable-memory-mcp
+npm ci
+```
+
 The primary evidence artifact is a portable `.eco` package. The verifier link or QR is only a fast way to open that package.
 
 Each `.eco` file is a JSON evidence envelope with:
@@ -185,16 +195,18 @@ Recall deployment strategy
 Found 1 entry
 
 Verify mem_a1b2c3d4
-✓ Entry is intact and chain-verified
+✓ Entry hashes, the complete chain, and State Root are verified
 ```
 
-## Install
+`verify(id)` reports separate checks for the entry's content hash, its entry hash, structural integrity of the entire chain, and the external State Root. `valid` is true only when all four checks pass. `stateRootVerified` is true only when the database head matches the OS keychain witness. If the witness is skipped, missing, or unavailable, the result is `verification_incomplete` and `valid` is false; that is not by itself proof that the chain was cryptographically altered. A witness mismatch or failed entry/chain check is reported as `integrity_failure`.
+
+## Install the MCP server from npm
 
 ```bash
 npm install -g verifiable-memory-mcp
 ```
 
-Requires Node.js 18+.
+Requires Node.js 22 or newer.
 
 ## MCP client config
 
@@ -296,7 +308,15 @@ Override the data directory with:
 VMCP_DATA_DIR=/tmp/vmcp-demo npx -y verifiable-memory-mcp
 ```
 
-## Demo flow
+### State Root recovery
+
+If `verify`, `read_verified_snapshot`, or `append_if_verified_head` reports a broken chain or a State Root mismatch, stop writes and preserve both the SQLite database and the OS keychain entry. In particular, do not continue with `remember`: its legacy append path updates the State Root after writing, which can replace a desynchronized witness with the current database head.
+
+VMMCP has no safe automatic witness-recovery or re-anchoring operation. Do not clear the witness or set it to the current database head based only on that database. Recovery requires an independently trusted database-and-witness backup or other external evidence that establishes the intended head. If none exists, preserve the state for manual review; the system cannot determine a trustworthy replacement witness by itself.
+
+## Source-repository demo flow
+
+Run these `npm run demo:*` commands from the root of a source checkout after `npm ci`. They are not available from the npm package alone.
 
 The end-to-end demo is sandbox-only by default:
 
@@ -414,7 +434,7 @@ Talo applies the same integrity-before-action pattern to recruiting operations: 
 
 ## Security / threat model
 
-- **Tamper detection**: `verify()` detects altered entry content. `chain()` detects broken links, removals, and reordering.
+- **Tamper detection**: `verify(id)` checks the selected entry and the complete chain, and reports the external State Root result separately. `chain()` detects broken links, removals, and reordering.
 - **No encryption**: the SQLite database is stored in plaintext.
 - **No access control**: anyone with filesystem access can read the database.
 - **No cloud**: the server does not send data to external services.
