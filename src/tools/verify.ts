@@ -1,25 +1,38 @@
-import { getEntry, verifyStateRoot } from "../db.js";
+import { inspectEntryForVerification } from "../db.js";
 import { hashContent, hashEntry, buildEntryCanonical } from "../hashing.js";
 import { ToolResponse } from "../types.js";
 
 export function verify(args: { id: string }): ToolResponse {
-  const entry = getEntry(args.id);
-  if (!entry) {
+  const snapshot = inspectEntryForVerification(args.id);
+  if (!snapshot) {
     return {
-      content: [{ type: "text", text: JSON.stringify({ status: "not_found", id: args.id }, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify({ verificationStatus: "not_found", id: args.id }, null, 2) }],
     };
   }
 
+  const entry = snapshot.entry;
   const recomputedContentHash = hashContent(entry.content);
   const contentValid = recomputedContentHash === entry.contentHash;
 
   const recomputedCanonical = buildEntryCanonical(entry.contentHash, entry.prevHash, entry.createdAt);
   const recomputedEntryHash = hashEntry(recomputedCanonical);
-  const chainValid = recomputedEntryHash === entry.entryHash;
-
-  const stateRoot = verifyStateRoot();
-  const stateRootBlockingFailure = stateRoot.status === "missing" || stateRoot.status === "mismatch";
-  const allOk = contentValid && chainValid && !stateRootBlockingFailure;
+  const entryHashValid = recomputedEntryHash === entry.entryHash;
+  const chainValid = snapshot.chainIntegrity === "verified";
+  const stateRoot = snapshot.stateRoot;
+  const stateRootVerified = stateRoot.stateRootVerified;
+  const explicitIntegrityFailure = !contentValid || !entryHashValid || !chainValid || stateRoot.status === "mismatch";
+  const verificationStatus = explicitIntegrityFailure
+    ? "integrity_failure"
+    : stateRootVerified
+      ? "verified"
+      : "verification_incomplete";
+  const allChecksPassed = verificationStatus === "verified";
+  const failureReasons = [
+    !contentValid ? "entry content hash mismatch" : null,
+    !entryHashValid ? "entry hash mismatch" : null,
+    !chainValid ? "complete-chain verification failed" : null,
+    stateRoot.status === "mismatch" ? "State Root does not match the database head" : null,
+  ].filter((reason): reason is string => reason !== null);
 
   return {
     content: [
@@ -28,22 +41,32 @@ export function verify(args: { id: string }): ToolResponse {
         text: JSON.stringify(
           {
             id: entry.id,
-            valid: allOk,
-            stateRootVerified: stateRoot.stateRootVerified,
+            verificationStatus,
+            /** True only when entry hashes, the complete chain, and the external State Root all pass. */
+            valid: allChecksPassed,
+            /** True only when the database head matched the OS keychain witness. */
+            stateRootVerified,
             createdAt: entry.createdAt,
+            totalEntries: snapshot.totalEntries,
             checks: {
               contentIntegrity: {
                 passed: contentValid,
                 stored: entry.contentHash,
                 computed: recomputedContentHash,
               },
-              chainIntegrity: {
-                passed: chainValid,
+              entryHashIntegrity: {
+                passed: entryHashValid,
                 stored: entry.entryHash,
                 computed: recomputedEntryHash,
               },
+              chainIntegrity: {
+                passed: chainValid,
+                status: snapshot.chainIntegrity,
+                scope: "entire_chain",
+                entriesChecked: snapshot.totalEntries,
+              },
               stateRoot: {
-                passed: !stateRootBlockingFailure,
+                passed: stateRootVerified,
                 status: stateRoot.status,
                 dbRoot: stateRoot.dbRoot,
                 keychainRoot: stateRoot.keychainRoot,
@@ -51,13 +74,11 @@ export function verify(args: { id: string }): ToolResponse {
                 message: stateRoot.message,
               },
             },
-            summary: allOk
-              ? "Entry is intact and chain-verified"
-              : stateRoot.status === "mismatch"
-                ? "TAMPERING DETECTED: State Root mismatch"
-                : stateRoot.status === "missing"
-                  ? "Integrity error: State Root is missing"
-              : "Entry has been tampered with",
+            summary: verificationStatus === "verified"
+              ? "Entry hashes, the complete chain, and State Root are verified"
+              : verificationStatus === "integrity_failure"
+                ? `Integrity failure: ${failureReasons.join("; ")}`
+                : `Verification incomplete: entry and chain checks passed, but State Root status is ${stateRoot.status}`,
           },
           null,
           2

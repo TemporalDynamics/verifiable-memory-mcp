@@ -230,6 +230,9 @@ describe("Real MCP stdio transport — full protocol verification", () => {
     const ver = parseText(verifyRaw);
     expect(verifyRaw.isError).toBeFalsy();
     expect(ver.valid).toBe(true);
+    expect(ver.verificationStatus).toBe("verified");
+    expect(ver.stateRootVerified).toBe(true);
+    expect(ver.checks.chainIntegrity).toMatchObject({ passed: true, scope: "entire_chain" });
 
     // 4. chain
     const chainRaw = await client.callTool({
