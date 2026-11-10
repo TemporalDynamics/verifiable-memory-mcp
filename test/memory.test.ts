@@ -13,6 +13,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
+import { buildEntryCanonical, hashContent, hashEntry } from "../src/hashing.js";
 
 let dir: string;
 let tools: {
@@ -74,9 +75,14 @@ describe("append and chain linkage", () => {
     expect(r.prevHash).toBeNull();
 
     const v = parse(tools.verify({ id: r.id }));
-    expect(v.valid).toBe(true);
+    expect(v.verificationStatus).toBe("verification_incomplete");
+    expect(v.valid).toBe(false);
+    expect(v.stateRootVerified).toBe(false);
     expect(v.checks.contentIntegrity.passed).toBe(true);
+    expect(v.checks.entryHashIntegrity.passed).toBe(true);
     expect(v.checks.chainIntegrity.passed).toBe(true);
+    expect(v.checks.chainIntegrity.scope).toBe("entire_chain");
+    expect(v.checks.stateRoot.status).toBe("skipped");
   });
 
   it("each entry links to the previous one and the full chain validates", () => {
@@ -153,8 +159,61 @@ describe("tamper detection (direct writes to the SQLite file)", () => {
     expect(c.valid).toBe(false);
     expect(c.failedAt).toBe(a.id);
 
-    // The untouched entry still verifies on its own.
-    expect(parse(tools.verify({ id: b.id })).valid).toBe(true);
+    // The second entry's local hashes are intact, but verify reports that
+    // the entire chain containing it is broken.
+    const untouched = parse(tools.verify({ id: b.id }));
+    expect(untouched.checks.contentIntegrity.passed).toBe(true);
+    expect(untouched.checks.entryHashIntegrity.passed).toBe(true);
+    expect(untouched.checks.chainIntegrity.passed).toBe(false);
+    expect(untouched.verificationStatus).toBe("integrity_failure");
+    expect(untouched.valid).toBe(false);
+  });
+
+  it("rejects an autoconsistent intermediate entry whose rewritten hash breaks the next link", () => {
+    parse(tools.remember({ content: "genesis" }));
+    const middle = parse(tools.remember({ content: "original middle" }));
+    parse(tools.remember({ content: "unchanged head" }));
+
+    const replacementContent = "rewritten middle";
+    const replacementContentHash = hashContent(replacementContent);
+    const db = rawDb();
+    const stored = db.prepare("SELECT created_at FROM entries WHERE id = ?").get(middle.id) as { created_at: string };
+    const replacementEntryHash = hashEntry(
+      buildEntryCanonical(replacementContentHash, middle.prevHash, stored.created_at),
+    );
+    db.prepare("UPDATE entries SET content = ?, content_hash = ?, entry_hash = ? WHERE id = ?")
+      .run(replacementContent, replacementContentHash, replacementEntryHash, middle.id);
+    db.close();
+
+    const verified = parse(tools.verify({ id: middle.id }));
+    expect(verified.checks.contentIntegrity.passed).toBe(true);
+    expect(verified.checks.entryHashIntegrity.passed).toBe(true);
+    expect(verified.checks.chainIntegrity.passed).toBe(false);
+    expect(verified.checks.chainIntegrity.status).toBe("failed");
+    expect(verified.verificationStatus).toBe("integrity_failure");
+    expect(verified.valid).toBe(false);
+  });
+
+  it("rejects a rewritten prevHash even when that entry's own entryHash is recomputed", () => {
+    parse(tools.remember({ content: "first" }));
+    const middle = parse(tools.remember({ content: "middle" }));
+    parse(tools.remember({ content: "last" }));
+
+    const replacementPrevHash = "f".repeat(64);
+    const db = rawDb();
+    const stored = db.prepare("SELECT created_at FROM entries WHERE id = ?").get(middle.id) as { created_at: string };
+    const replacementEntryHash = hashEntry(
+      buildEntryCanonical(middle.contentHash, replacementPrevHash, stored.created_at),
+    );
+    db.prepare("UPDATE entries SET prev_hash = ?, entry_hash = ? WHERE id = ?")
+      .run(replacementPrevHash, replacementEntryHash, middle.id);
+    db.close();
+
+    const verified = parse(tools.verify({ id: middle.id }));
+    expect(verified.checks.contentIntegrity.passed).toBe(true);
+    expect(verified.checks.entryHashIntegrity.passed).toBe(true);
+    expect(verified.checks.chainIntegrity.passed).toBe(false);
+    expect(verified.valid).toBe(false);
   });
 
   it("detects a deleted entry through the broken link", () => {
@@ -200,7 +259,8 @@ describe("tamper detection (direct writes to the SQLite file)", () => {
     const v = parse(tools.verify({ id: a.id }));
     expect(v.valid).toBe(false);
     expect(v.checks.contentIntegrity.passed).toBe(true); // el contenido no cambió
-    expect(v.checks.chainIntegrity.passed).toBe(false); // el sello sí
+    expect(v.checks.entryHashIntegrity.passed).toBe(false); // el sello sí
+    expect(v.checks.chainIntegrity.passed).toBe(false);
   });
 });
 

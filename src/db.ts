@@ -34,6 +34,13 @@ export interface StateRootCheck {
   message?: string;
 }
 
+export interface EntryVerificationSnapshot {
+  readonly entry: MemoryEntry;
+  readonly totalEntries: number;
+  readonly chainIntegrity: "verified" | "failed";
+  readonly stateRoot: StateRootCheck;
+}
+
 export function getDb(): Database.Database {
   if (!db) {
     mkdirSync(DB_DIR, { recursive: true });
@@ -652,6 +659,35 @@ export function getEntry(id: string): MemoryEntry | undefined {
   const row = database.prepare("SELECT * FROM entries WHERE id = ?").get(id) as Record<string, unknown> | undefined;
   if (!row) return undefined;
   return rowToEntry(row);
+}
+
+/**
+ * Read one entry and verify the complete stored chain plus the external
+ * State Root within one coherent SQLite read snapshot. The keychain lookup
+ * remains separate and is not atomic with SQLite. A missing or unreadable
+ * witness is reported separately from a structurally broken chain.
+ */
+export function inspectEntryForVerification(id: string): EntryVerificationSnapshot | null {
+  const database = getDb();
+  return database.transaction(() => {
+    const row = database.prepare("SELECT * FROM entries WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    let chainIntegrity: EntryVerificationSnapshot["chainIntegrity"] = "verified";
+    try {
+      verifyChainStructurally(database);
+    } catch (error) {
+      if (!(error instanceof IntegrityFailureSignal)) throw error;
+      chainIntegrity = "failed";
+    }
+
+    return {
+      entry: rowToEntry(row),
+      totalEntries: entryCount(),
+      chainIntegrity,
+      stateRoot: verifyStateRoot(),
+    };
+  }).deferred();
 }
 
 export function searchEntries(query: string, limit = 20): MemoryEntry[] {
