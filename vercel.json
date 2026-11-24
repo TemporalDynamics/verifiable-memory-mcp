@@ -1,4 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "installCommand": "echo 'Static site: skipping native MCP npm install'",
+  "buildCommand": "echo 'Static site: no build step required'",
   "outputDirectory": "."
 }
